@@ -1,0 +1,170 @@
+/* ==========================================================================
+   CorteYa — estilos propios sobre Bootstrap 5.3 (cargado por CDN)
+   Paleta: carbón #1C1C1E · dorado #C8A15A · crema #F7F4EF
+   ========================================================================== */
+
+:root {
+    --cy-carbon: #1C1C1E;
+    --cy-dorado: #C8A15A;
+    --cy-dorado-oscuro: #B38B43;
+    --cy-crema: #F7F4EF;
+    --cy-error: #B02A37; /* rojo más oscuro que #DC3545: el texto pequeño cumple el contraste mínimo */
+
+    /* Variables de Bootstrap que se sobrescriben */
+    --bs-primary: #C8A15A;
+    --bs-primary-rgb: 200, 161, 90;
+    --bs-body-bg: #F7F4EF;
+    --bs-body-color: #1C1C1E;
+    --bs-body-font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --bs-link-color: #8A6A2C;
+    --bs-link-hover-color: #6B521F;
+}
+
+body {
+    font-family: var(--bs-body-font-family);
+    background-color: var(--cy-crema);
+    color: var(--cy-carbon);
+}
+
+/* Oswald para títulos y logo */
+h1, h2, h3, h4, h5, h6, .cy-titulo {
+    font-family: 'Oswald', 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+
+/* --- Botón principal: texto carbón sobre dorado (el blanco no tiene contraste suficiente) --- */
+.btn-primary {
+    --bs-btn-color: #1C1C1E;
+    --bs-btn-bg: #C8A15A;
+    --bs-btn-border-color: #C8A15A;
+    --bs-btn-hover-color: #1C1C1E;
+    --bs-btn-hover-bg: #B38B43;
+    --bs-btn-hover-border-color: #B38B43;
+    --bs-btn-active-color: #1C1C1E;
+    --bs-btn-active-bg: #A67E3A;
+    --bs-btn-active-border-color: #A67E3A;
+    --bs-btn-disabled-color: #1C1C1E;
+    --bs-btn-disabled-bg: #C8A15A;
+    --bs-btn-disabled-border-color: #C8A15A;
+    --bs-btn-focus-shadow-rgb: 200, 161, 90;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: #8A6A2C;
+    --bs-btn-border-color: #C8A15A;
+    --bs-btn-hover-color: #1C1C1E;
+    --bs-btn-hover-bg: #C8A15A;
+    --bs-btn-hover-border-color: #C8A15A;
+    --bs-btn-active-color: #1C1C1E;
+    --bs-btn-active-bg: #B38B43;
+    --bs-btn-active-border-color: #B38B43;
+    --bs-btn-focus-shadow-rgb: 200, 161, 90;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--cy-dorado);
+    box-shadow: 0 0 0 .25rem rgba(200, 161, 90, .25);
+}
+
+/* --- Estados del turno: SIEMPRE los mismos colores (componente <x-estado-turno>) --- */
+.badge-estado { font-weight: 600; letter-spacing: .01em; }
+.badge-estado-pendiente  { background-color: #6C757D; color: #fff; }
+.badge-estado-confirmado { background-color: #0D6EFD; color: #fff; }
+.badge-estado-atendido   { background-color: #198754; color: #fff; }
+.badge-estado-cancelado  { background-color: #DC3545; color: #fff; }
+.badge-estado-no_asistio { background-color: #FD7E14; color: #1C1C1E; } /* naranja: texto carbón */
+
+/* ==========================================================================
+   Login (layouts/guest)
+   ========================================================================== */
+.cy-login-fondo {
+    min-height: 100vh;
+    /* Capa oscura encima de la foto para que el formulario se lea bien */
+    background:
+        linear-gradient(rgba(28, 28, 30, .78), rgba(28, 28, 30, .88)),
+        url('../img/login-bg.webp') 30% center / cover no-repeat;
+    background-color: var(--cy-carbon);
+}
+
+.cy-login-card {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--cy-crema);
+    border-top: 4px solid var(--cy-dorado) !important;
+}
+
+.cy-logo-icono { font-size: 2.6rem; color: var(--cy-dorado); line-height: 1; }
+.cy-logo-texto { font-family: 'Oswald', sans-serif; font-weight: 700; letter-spacing: .12em; font-size: 2rem; }
+.cy-logo-sub   { font-size: .7rem; letter-spacing: .28em; color: #6C757D; }
+
+.cy-error-texto { color: var(--cy-error); font-size: .875rem; }
+
+/* ==========================================================================
+   Panel (layouts/app): sidebar oscuro + área de trabajo clara
+   ========================================================================== */
+.cy-sidebar {
+    --bs-offcanvas-bg: #1C1C1E;
+    --bs-offcanvas-color: #fff;
+    --bs-offcanvas-width: 270px;
+    background-color: var(--cy-carbon);
+    color: #fff;
+}
+
+@media (min-width: 992px) {
+    /* Desde "lg" el offcanvas se vuelve una barra lateral fija */
+    .cy-sidebar.offcanvas-lg {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 260px !important;
+        height: 100vh !important;
+        background-color: var(--cy-carbon) !important;
+        color: #fff !important;
+        flex-direction: column;
+    }
+    .cy-main { margin-left: 260px; }
+}
+
+.cy-sidebar .cy-marca { font-family: 'Oswald', sans-serif; font-weight: 700; letter-spacing: .12em; font-size: 1.35rem; color: #fff; text-decoration: none; }
+.cy-sidebar .cy-marca small { display: block; font-family: 'Inter', sans-serif; font-weight: 400; font-size: .6rem; letter-spacing: .25em; color: #9a9aa0; }
+.cy-sidebar .cy-marca i { color: var(--cy-dorado); }
+
+.cy-sidebar .nav-link {
+    color: #cfcfd4;
+    border-radius: .5rem;
+    padding: .65rem .9rem;
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+}
+.cy-sidebar .nav-link:hover { background-color: rgba(255, 255, 255, .08); color: #fff; }
+/* Ítem activo: fondo dorado con texto carbón */
+.cy-sidebar .nav-link.active { background-color: var(--cy-dorado); color: var(--cy-carbon); font-weight: 600; }
+
+.cy-usuario { border-top: 1px solid rgba(255, 255, 255, .12); }
+.cy-usuario small { color: #9a9aa0; }
+
+.cy-topbar {
+    background-color: #fff;
+    border-bottom: 1px solid #e7e2d8;
+}
+
+.cy-tarjeta { background-color: #fff; border: 1px solid #e7e2d8; border-radius: .75rem; }
+
+/* ==========================================================================
+   Páginas de error (404, 403, 419, 500) — layout independiente
+   ========================================================================== */
+.cy-error-pagina {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.5rem;
+    background-color: var(--cy-crema);
+}
+.cy-error-icono  { font-size: 4rem; color: var(--cy-dorado); line-height: 1; }
+.cy-error-codigo { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: clamp(4rem, 18vw, 7rem); line-height: 1; margin: .25rem 0; }

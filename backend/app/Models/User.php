@@ -45,6 +45,12 @@ class User extends Authenticatable
         return $this->rol === self::ROL_BARBERO;
     }
 
+    /** URL de la pantalla de inicio de cada rol. */
+    public function rutaInicio(): string
+    {
+        return route($this->esAdmin() ? 'dashboard' : 'agenda');
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *
