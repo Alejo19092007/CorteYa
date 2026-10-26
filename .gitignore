@@ -1,0 +1,18 @@
+# Secretos: solo se versiona .env.example
+.env
+.env.*
+!.env.example
+
+# Dependencias
+node_modules/
+vendor/
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# Claude Code (configuración local)
+.claude/
