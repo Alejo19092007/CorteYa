@@ -2,7 +2,7 @@
 
 Sistema de turnos para una barbería de Bucaramanga. Proyecto de aula de **Desarrollo y Arquitectura Backend** (UNAB, segundo corte).
 
-**Integrantes:** Edwar Alejandro Jiménez Ríos y Julián.
+**Integrante:** Edwar Alejandro Jiménez Ríos.
 
 ## Piezas
 
