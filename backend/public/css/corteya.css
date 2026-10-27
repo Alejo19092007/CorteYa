@@ -205,3 +205,14 @@ h1, h2, h3, h4, h5, h6, .cy-titulo {
 
 /* Encabezado de tablas con el tono de la marca */
 .table > thead th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: #6C757D; white-space: nowrap; }
+
+/* ==========================================================================
+   Dashboard
+   ========================================================================== */
+.cy-cifra { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: clamp(1.6rem, 4vw, 2.1rem); line-height: 1.1; }
+
+/* El color de la variación depende de si el cambio es bueno o malo, no de si sube o baja */
+.cy-var-bueno { color: #146C43; }   /* verde oscuro: contraste suficiente sobre blanco */
+.cy-var-malo  { color: var(--cy-error); }
+
+.cy-grafico { position: relative; height: 280px; }
