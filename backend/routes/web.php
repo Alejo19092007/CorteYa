@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BarberoController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ServicioController;
 use App\Http\Controllers\TurnoController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +28,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/clientes/buscar', [ClienteController::class, 'buscar'])->name('clientes.buscar');
 
         Route::resource('turnos', TurnoController::class);
+
+        // Servicios y barberos: "alternar activo" desactiva en vez de borrar (el historial se conserva)
+        Route::patch('/servicios/{servicio}/activo', [ServicioController::class, 'alternarActivo'])->name('servicios.activo');
+        Route::resource('servicios', ServicioController::class)->except('show');
+
+        Route::patch('/barberos/{barbero}/activo', [BarberoController::class, 'alternarActivo'])->name('barberos.activo');
+        Route::resource('barberos', BarberoController::class)->except('show');
     });
 
     // Solo los barberos
