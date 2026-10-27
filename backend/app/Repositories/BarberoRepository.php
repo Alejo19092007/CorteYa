@@ -110,6 +110,27 @@ class BarberoRepository
             ->get();
     }
 
+    /**
+     * Ingresos de cada barbero entre dos fechas (suma de sus turnos atendidos), del que más al que menos.
+     * Incluye a los que no facturaron (ingresos = 0): así el gráfico muestra a todo el equipo.
+     * withSum hace el cálculo en la base de datos, en una sola consulta.
+     *
+     * @return Collection<int, Barbero> cada uno con el atributo "ingresos"
+     */
+    public function ingresosPorBarbero(string $desde, string $hasta): Collection
+    {
+        return Barbero::query()
+            ->with('user')
+            ->withSum(['turnos as ingresos' => fn ($q) => $q
+                ->where('estado', Turno::ATENDIDO)
+                ->whereDate('fecha', '>=', $desde)
+                ->whereDate('fecha', '<=', $hasta)], 'precio_total')
+            ->get()
+            ->each(fn (Barbero $b) => $b->ingresos = (float) $b->ingresos)
+            ->sortByDesc('ingresos')
+            ->values();
+    }
+
     public function tieneTurnos(Barbero $barbero): bool
     {
         return $barbero->turnos()->exists();

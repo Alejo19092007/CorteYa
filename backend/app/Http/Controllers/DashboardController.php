@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\DashboardService;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    /** Solo administrador. Por ahora es un marcador; las tarjetas y el gráfico llegan con DashboardService. */
+    public function __construct(private readonly DashboardService $dashboard) {}
+
+    /** Solo administrador. Los números los calcula DashboardService; aquí solo se entregan a la vista. */
     public function index(): View
     {
-        return view('panel.dashboard');
+        return view('panel.dashboard', $this->dashboard->resumen());
     }
 }
