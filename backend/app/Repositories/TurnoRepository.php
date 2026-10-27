@@ -46,6 +46,46 @@ class TurnoRepository
             ->get();
     }
 
+    /** Todos los turnos de una fecha, por hora (agenda general del día, con los cancelados incluidos). */
+    public function delDia(string $fecha): Collection
+    {
+        return Turno::whereDate('fecha', $fecha)
+            ->with(['barbero.user', 'cliente'])
+            ->orderBy('hora_inicio')
+            ->get();
+    }
+
+    /** Turnos de una fecha SIN contar los cancelados (los que de verdad se van a atender). */
+    public function contarDelDia(string $fecha): int
+    {
+        return Turno::whereDate('fecha', $fecha)
+            ->where('estado', '!=', Turno::CANCELADO)
+            ->count();
+    }
+
+    /**
+     * Ingresos entre dos fechas (ambas incluidas): suma de turnos ATENDIDOS.
+     * Un turno pendiente, confirmado, cancelado o de inasistencia todavía no es dinero cobrado.
+     */
+    public function ingresosEntre(string $desde, string $hasta): float
+    {
+        // whereDate (y no whereBetween): compara solo el DÍA, así el último día del rango
+        // entra completo sin importar cómo guarde la fecha cada motor de base de datos.
+        return (float) Turno::where('estado', Turno::ATENDIDO)
+            ->whereDate('fecha', '>=', $desde)
+            ->whereDate('fecha', '<=', $hasta)
+            ->sum('precio_total');
+    }
+
+    /** Turnos cancelados cuya fecha cae entre las dos fechas (ambas incluidas). */
+    public function cancelacionesEntre(string $desde, string $hasta): int
+    {
+        return Turno::where('estado', Turno::CANCELADO)
+            ->whereDate('fecha', '>=', $desde)
+            ->whereDate('fecha', '<=', $hasta)
+            ->count();
+    }
+
     /** Servicios que se ofrecen (activos) entre los ids pedidos. */
     public function serviciosActivos(array $ids): Collection
     {

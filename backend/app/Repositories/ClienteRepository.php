@@ -15,6 +15,12 @@ class ClienteRepository
         return Cliente::where('telefono', $telefono)->first();
     }
 
+    /** Clientes registrados entre dos fechas (ambas incluidas). */
+    public function contarNuevos(string $desde, string $hasta): int
+    {
+        return Cliente::whereBetween('created_at', ["{$desde} 00:00:00", "{$hasta} 23:59:59"])->count();
+    }
+
     /** Búsqueda por nombre o teléfono para el selector del formulario de turnos. */
     public function buscar(string $texto, int $limite = 8): Collection
     {
