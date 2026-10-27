@@ -168,3 +168,40 @@ h1, h2, h3, h4, h5, h6, .cy-titulo {
 }
 .cy-error-icono  { font-size: 4rem; color: var(--cy-dorado); line-height: 1; }
 .cy-error-codigo { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: clamp(4rem, 18vw, 7rem); line-height: 1; margin: .25rem 0; }
+
+/* ==========================================================================
+   Agenda del barbero y formularios
+   ========================================================================== */
+
+/* Círculo con las iniciales del cliente (no hay fotos en la base de datos) */
+.cy-avatar {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: var(--cy-dorado);
+    color: var(--cy-carbon);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    letter-spacing: .03em;
+}
+
+/* Botón "No asistió": contorno naranja (el color del estado), texto carbón al rellenar */
+.btn-no-asistio {
+    --bs-btn-color: #1C1C1E;
+    --bs-btn-border-color: #FD7E14;
+    --bs-btn-hover-color: #1C1C1E;
+    --bs-btn-hover-bg: #FD7E14;
+    --bs-btn-hover-border-color: #FD7E14;
+    --bs-btn-active-color: #1C1C1E;
+    --bs-btn-active-bg: #E8710C;
+    --bs-btn-active-border-color: #E8710C;
+    --bs-btn-disabled-color: #6C757D;
+    --bs-btn-disabled-border-color: #ced4da;
+}
+
+/* Encabezado de tablas con el tono de la marca */
+.table > thead th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: #6C757D; white-space: nowrap; }

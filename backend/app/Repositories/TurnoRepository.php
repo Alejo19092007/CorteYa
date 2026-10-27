@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Servicio;
 use App\Models\Turno;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
@@ -11,6 +12,40 @@ use Illuminate\Support\Collection;
  */
 class TurnoRepository
 {
+    /**
+     * Listado del panel con búsqueda, filtros y paginación.
+     *
+     * Filtros (todos opcionales): q (nombre o teléfono del cliente), barbero_id, estado, desde, hasta.
+     * withQueryString() hace que los enlaces de paginación conserven los filtros.
+     * with(...) trae las relaciones de una vez: sin eso, cada fila dispararía varias consultas extra.
+     */
+    public function buscar(array $filtros, int $porPagina = 10): LengthAwarePaginator
+    {
+        return Turno::query()
+            ->with(['barbero.user', 'cliente', 'servicios'])
+            ->when($filtros['q'] ?? null, fn ($q, $texto) => $q->whereHas('cliente', fn ($c) => $c
+                ->where('nombre', 'like', "%{$texto}%")
+                ->orWhere('telefono', 'like', "%{$texto}%")))
+            ->when($filtros['barbero_id'] ?? null, fn ($q, $id) => $q->where('barbero_id', $id))
+            ->when($filtros['estado'] ?? null, fn ($q, $estado) => $q->where('estado', $estado))
+            ->when($filtros['desde'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha', '>=', $fecha))
+            ->when($filtros['hasta'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha', '<=', $fecha))
+            ->orderByDesc('fecha')
+            ->orderBy('hora_inicio')
+            ->paginate($porPagina)
+            ->withQueryString();
+    }
+
+    /** Agenda de un barbero en una fecha, por hora (incluye cancelados para que se vean). */
+    public function agendaDelBarbero(int $barberoId, string $fecha): Collection
+    {
+        return Turno::where('barbero_id', $barberoId)
+            ->whereDate('fecha', $fecha)
+            ->with(['cliente', 'servicios'])
+            ->orderBy('hora_inicio')
+            ->get();
+    }
+
     /** Servicios que se ofrecen (activos) entre los ids pedidos. */
     public function serviciosActivos(array $ids): Collection
     {

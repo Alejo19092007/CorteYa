@@ -159,9 +159,11 @@ class TurnoService
      * Horas de inicio libres de un barbero en una fecha para un servicio (o combo) que dura
      * $duracionMin minutos. Lo usan el formulario de nuevo turno y GET /api/barberos/{id}/disponibilidad.
      *
+     * Al editar un turno se pasa su id en $ignorarTurnoId: su propio horario cuenta como libre.
+     *
      * @return array<int, string> horas en formato "H:i", ej. ["09:00", "09:15", ...]
      */
-    public function disponibilidad(int $barberoId, string $fecha, int $duracionMin): array
+    public function disponibilidad(int $barberoId, string $fecha, int $duracionMin, ?int $ignorarTurnoId = null): array
     {
         $barbero = $this->barberos->encontrar($barberoId);
         $dia = Carbon::parse($fecha);
@@ -171,7 +173,7 @@ class TurnoService
             return [];
         }
 
-        $ocupados = $this->turnos->ocupadosDelBarbero($barberoId, $dia->toDateString());
+        $ocupados = $this->turnos->ocupadosDelBarbero($barberoId, $dia->toDateString(), $ignorarTurnoId);
         $cursor = Carbon::parse($dia->toDateString().' '.$horario->hora_inicio);
         $cierre = Carbon::parse($dia->toDateString().' '.$horario->hora_fin);
         $libres = [];
@@ -192,6 +194,17 @@ class TurnoService
         }
 
         return $libres;
+    }
+
+    /**
+     * Minutos que durarían los servicios elegidos (para consultar la disponibilidad).
+     * Usa la misma regla de R2: al editar, un servicio que el turno ya tenía conserva su duración original.
+     */
+    public function duracionDe(array $servicioIds, ?Turno $existente = null): int
+    {
+        $servicios = $this->turnos->serviciosActivos(array_values(array_unique($servicioIds)));
+
+        return (int) collect($this->armarLineas($servicios, $existente))->sum('duracion_min');
     }
 
     /**
