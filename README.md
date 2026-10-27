@@ -44,7 +44,7 @@ En un servidor público se definen `SEED_ADMIN_PASSWORD` y `SEED_BARBERO_PASSWOR
 
 ## Datos de demo
 
-El seeder también crea servicios, clientes, ~30 días de historial para el dashboard y los turnos de **hoy** calculados respecto a la hora actual (uno para marcar atendido, uno para no asistió, uno pendiente por confirmar y uno futuro). Antes de la sustentación:
+El seeder también crea servicios, clientes, ~60 días de historial para el dashboard y los turnos de **hoy** calculados respecto a la hora actual (uno para marcar atendido, uno para no asistió, uno pendiente por confirmar y uno futuro). Antes de la sustentación:
 
 ```bash
 php artisan migrate:fresh --seed   # borra toda la base y la reconstruye

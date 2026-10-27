@@ -19,7 +19,7 @@ class TurnoHistorialSeeder extends Seeder
     private Collection $servicios;
 
     /**
-     * Turnos de los últimos 30 días (para que el dashboard tenga datos), de los 3 días
+     * Turnos de los últimos 60 días (para que el dashboard tenga datos), de los 3 días
      * siguientes (para que las agendas no estén vacías) y los 9 turnos atendidos del
      * cliente fiel (R5).
      *
@@ -34,8 +34,9 @@ class TurnoHistorialSeeder extends Seeder
         // El cliente fiel se excluye del azar: debe tener exactamente 9 turnos atendidos.
         $this->clientes = Cliente::where('telefono', '!=', ClienteSeeder::TELEFONO_FIEL)->get();
 
-        // Pasado: de hace 30 días hasta ayer
-        for ($dias = 30; $dias >= 1; $dias--) {
+        // Pasado: de hace 60 días hasta ayer. Dos meses de historial para que el dashboard pueda
+        // comparar "este mes" contra "el mes anterior" con datos reales en ambos lados.
+        for ($dias = 60; $dias >= 1; $dias--) {
             foreach ($this->barberos as $barbero) {
                 $this->agendarDia($barbero, today()->subDays($dias), pasado: true);
             }
