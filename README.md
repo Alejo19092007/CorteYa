@@ -15,7 +15,7 @@ Sistema de turnos para una barbería de Bucaramanga. Proyecto de aula de **Desar
 
 ## Estado
 
-En construcción. Entregas cerradas: `docs` (arquitectura C4), `v0.1` (modelo de datos) y `v0.2` (panel: login con roles, dashboard y CRUD). En curso: `v0.3` (API con Sanctum, Postman y despliegue en Render + Aiven).
+En construcción. Entregas cerradas: `docs` (arquitectura C4), `v0.1` (modelo de datos), `v0.2` (panel: login con roles, dashboard y CRUD) y `v0.3` (API con Sanctum, colección de Postman y despliegue público en Render + Aiven: https://corteya.onrender.com). En curso: `v0.4` (bot de WhatsApp en `cliente/`).
 
 ## Desarrollo local
 
