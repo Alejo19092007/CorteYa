@@ -184,6 +184,20 @@ class TurnoPanelTest extends TestCase
 
     // ------------------------------------------------------------------ crear
 
+    public function test_el_aviso_de_turno_creado_no_termina_con_dos_puntos(): void
+    {
+        $datos = $this->datosNuevoTurno();
+        $nombre = Cliente::find($datos['cliente_id'])->nombre;
+
+        $this->actingAs($this->admin)->post(route('turnos.store'), $datos);
+
+        // "p. m." / "a. m." ya terminan en punto: el mensaje no debe agregar otro
+        $aviso = session('exito');
+        $this->assertStringStartsWith("Turno creado para {$nombre}", $aviso);
+        $this->assertStringEndsWith('a. m.', $aviso);
+        $this->assertStringNotContainsString('..', $aviso);
+    }
+
     public function test_crea_un_turno_desde_el_panel_ya_confirmado(): void
     {
         $datos = $this->datosNuevoTurno();

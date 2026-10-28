@@ -49,7 +49,7 @@ class TurnoController extends Controller
         $turno = $this->turnos->crear($request->validated(), Turno::ORIGEN_PANEL);
 
         return redirect()->route('turnos.index')
-            ->with('exito', "Turno creado para {$turno->cliente->nombre} el {$turno->fecha->format('d/m/Y')} a las {$turno->horaInicioLegible()}.");
+            ->with('exito', "Turno creado para {$turno->cliente->nombre} el {$turno->fecha->format('d/m/Y')} a las {$turno->horaInicioLegible()}");   // la hora ya termina en punto ("p. m."): no se agrega otro
     }
 
     public function show(Turno $turno): View
