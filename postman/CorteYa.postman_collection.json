@@ -1,0 +1,1301 @@
+{
+  "info": {
+    "name": "CorteYa API",
+    "description": "API REST de CorteYa (Laravel 12 + Sanctum). Ejecutar la colección completa (Runner) en orden: el login guarda el token y cada petición verifica su código de respuesta.\n\nRequisito: base con los datos de demo (php artisan demo:cargar) o al menos un barbero activo con horario.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Fecha de mañana (Y-m-d), para que el turno sea futuro y cancelable (R3)",
+          "const manana = new Date(Date.now() + 24 * 60 * 60 * 1000);",
+          "const dos = (n) => String(n).padStart(2, \"0\");",
+          "pm.collectionVariables.set(\"fecha\", `${manana.getFullYear()}-${dos(manana.getMonth() + 1)}-${dos(manana.getDate())}`);"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "fecha",
+      "value": ""
+    },
+    {
+      "key": "hora",
+      "value": "10:00"
+    },
+    {
+      "key": "telefono",
+      "value": "573009990000"
+    },
+    {
+      "key": "servicio_id",
+      "value": "1"
+    },
+    {
+      "key": "barbero_id",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticación",
+      "item": [
+        {
+          "name": "POST /login (200) — guarda el token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "description": "Inicia sesión y guarda el token Sanctum en la variable {{token}}; el resto de peticiones lo usan solas.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"device_name\": \"postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "const datos = pm.response.json();",
+                  "pm.test(\"Devuelve un token Bearer\", () => { pm.expect(datos.token).to.be.a(\"string\").and.not.empty; pm.expect(datos.token_type).to.eql(\"Bearer\"); });",
+                  "pm.test(\"No expone la contraseña\", () => pm.expect(datos.user).to.not.have.property(\"password\"));",
+                  "pm.collectionVariables.set(\"token\", datos.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /login con contraseña incorrecta (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"contraseña-incorrecta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Mensaje: Credenciales incorrectas\", () => pm.expect(pm.response.json().message).to.include(\"Credenciales incorrectas\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /login sin datos (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Indica los campos con error\", () => pm.expect(pm.response.json().errors).to.have.keys(\"email\", \"password\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /servicios sin token (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Mensaje: No autenticado\", () => pm.expect(pm.response.json().message).to.include(\"No autenticado\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Servicios",
+      "item": [
+        {
+          "name": "GET /servicios (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "const lista = pm.response.json().data;",
+                  "pm.test(\"Es una lista de servicios\", () => { pm.expect(lista).to.be.an(\"array\"); if (lista.length) pm.expect(lista[0]).to.have.keys(\"id\", \"nombre\", \"duracion_min\", \"precio\", \"activo\"); });",
+                  "const activo = lista.find((s) => s.activo);",
+                  "if (activo) pm.collectionVariables.set(\"servicio_id\", activo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /servicios (201) — guarda el id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Mascarilla {{$timestamp}}\",\n  \"duracion_min\": 20,\n  \"precio\": 18000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Queda activo por defecto\", () => pm.expect(pm.response.json().data.activo).to.eql(true));",
+                  "pm.collectionVariables.set(\"servicio_nuevo_id\", pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /servicios con datos inválidos (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"duracion_min\": 0,\n  \"precio\": -1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Indica los campos con error\", () => pm.expect(pm.response.json().errors).to.have.keys(\"nombre\", \"duracion_min\", \"precio\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /servicios/{id} (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/{{servicio_nuevo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "{{servicio_nuevo_id}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Mascarilla facial {{$timestamp}}\",\n  \"duracion_min\": 25,\n  \"precio\": 20000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Aplica el nuevo precio\", () => pm.expect(pm.response.json().data.precio).to.eql(20000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /servicios/{id} inexistente (404)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "999999"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"No existe\",\n  \"duracion_min\": 10,\n  \"precio\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /servicios/{id} (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/{{servicio_nuevo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "{{servicio_nuevo_id}}"
+              ]
+            },
+            "description": "Borra el servicio creado arriba (nunca se usó en un turno). Un servicio ya usado responde 422 y hay que desactivarlo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /servicios/{id} inexistente (404)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios/999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios",
+                "999999"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Disponibilidad",
+      "item": [
+        {
+          "name": "GET /barberos (200) — guarda un barbero",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/barberos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "barberos"
+              ]
+            },
+            "description": "Requiere haber cargado los datos de demo (php artisan demo:cargar) o tener al menos un barbero activo con horario."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "const barberos = pm.response.json().data;",
+                  "pm.test(\"Hay al menos un barbero activo\", () => pm.expect(barberos.length).to.be.above(0));",
+                  "pm.collectionVariables.set(\"barbero_id\", barberos[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /barberos/{id}/disponibilidad (200) — guarda una hora",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/barberos/{{barbero_id}}/disponibilidad?fecha={{fecha}}&servicios[]={{servicio_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "barberos",
+                "{{barbero_id}}",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "{{fecha}}"
+                },
+                {
+                  "key": "servicios[]",
+                  "value": "{{servicio_id}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test(\"Trae las horas libres y la duración\", () => { pm.expect(datos.horas).to.be.an(\"array\"); pm.expect(datos.duracion_min).to.be.above(0); });",
+                  "if (datos.horas.length) pm.collectionVariables.set(\"hora\", datos.horas[Math.floor(datos.horas.length / 2)]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /barberos/{id}/disponibilidad con barbero inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/barberos/999999/disponibilidad?fecha={{fecha}}&servicios[]={{servicio_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "barberos",
+                "999999",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "{{fecha}}"
+                },
+                {
+                  "key": "servicios[]",
+                  "value": "{{servicio_id}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /barberos/{id}/disponibilidad sin fecha (422)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/barberos/{{barbero_id}}/disponibilidad",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "barberos",
+                "{{barbero_id}}",
+                "disponibilidad"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Turnos",
+      "item": [
+        {
+          "name": "POST /turnos (201) — guarda el id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turnos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "turnos"
+              ]
+            },
+            "description": "Crea un turno pendiente de origen whatsapp. hora_fin y precio_total NO se envían: los calcula el sistema (R2). Si el cliente es nuevo se registra con el nombre.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"{{telefono}}\",\n  \"nombre\": \"Cliente de Postman\",\n  \"barbero_id\": {{barbero_id}},\n  \"fecha\": \"{{fecha}}\",\n  \"hora_inicio\": \"{{hora}}\",\n  \"servicios\": [\n    {{servicio_id}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "const turno = pm.response.json().data;",
+                  "pm.test(\"Nace pendiente y de origen whatsapp\", () => { pm.expect(turno.estado).to.eql(\"pendiente\"); pm.expect(turno.origen).to.eql(\"whatsapp\"); });",
+                  "pm.test(\"R2: calcula hora_fin y precio_total\", () => { pm.expect(turno.hora_fin).to.be.a(\"string\"); pm.expect(turno.precio_total).to.be.above(0); });",
+                  "pm.collectionVariables.set(\"turno_id\", turno.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /turnos en el mismo horario (422, R1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turnos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "turnos"
+              ]
+            },
+            "description": "Repite el mismo barbero, fecha y hora: R1 rechaza el cruce.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"{{telefono}}\",\n  \"nombre\": \"Cliente de Postman\",\n  \"barbero_id\": {{barbero_id}},\n  \"fecha\": \"{{fecha}}\",\n  \"hora_inicio\": \"{{hora}}\",\n  \"servicios\": [\n    {{servicio_id}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Mensaje: El barbero no está disponible en ese horario\", () => pm.expect(pm.response.json().message).to.include(\"El barbero no está disponible en ese horario\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /turnos con datos inválidos (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turnos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "turnos"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Indica los campos con error\", () => pm.expect(pm.response.json().errors).to.include.keys(\"telefono\", \"barbero_id\", \"fecha\", \"hora_inicio\", \"servicios\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /turnos?telefono= (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turnos?telefono={{telefono}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "turnos"
+              ],
+              "query": [
+                {
+                  "key": "telefono",
+                  "value": "{{telefono}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Trae el turno recién creado\", () => pm.expect(pm.response.json().data.map((t) => t.id)).to.include(Number(pm.collectionVariables.get(\"turno_id\"))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /turnos sin teléfono (422)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turnos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "turnos"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /turnos/{id} (200) — reprograma",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turnos/{{turno_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "turnos",
+                "{{turno_id}}"
+              ]
+            },
+            "description": "Cambia el servicio: se recalculan hora_fin y precio_total. El cliente no cambia.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barbero_id\": {{barbero_id}},\n  \"fecha\": \"{{fecha}}\",\n  \"hora_inicio\": \"{{hora}}\",\n  \"servicios\": [\n    {{servicio_id}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Sigue pendiente\", () => pm.expect(pm.response.json().data.estado).to.eql(\"pendiente\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /turnos/{id} inexistente (404)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turnos/999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "turnos",
+                "999999"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barbero_id\": 1,\n  \"fecha\": \"{{fecha}}\",\n  \"hora_inicio\": \"10:00\",\n  \"servicios\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /turnos/{id} (204) — cancela",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turnos/{{turno_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "turnos",
+                "{{turno_id}}"
+              ]
+            },
+            "description": "Cancela el turno (no lo borra: pasa a \"cancelado\"). R3: solo si faltan 2 horas o más; el turno de esta colección es de mañana."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /turnos/{id} ya cancelado (422, R4)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turnos/{{turno_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "turnos",
+                "{{turno_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Mensaje: Cambio de estado no permitido\", () => pm.expect(pm.response.json().message).to.include(\"Cambio de estado no permitido\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /turnos/{id} inexistente (404)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turnos/999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "turnos",
+                "999999"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Cierre de sesión",
+      "item": [
+        {
+          "name": "POST /logout (204)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "logout"
+              ]
+            },
+            "description": "Revoca el token. Para seguir probando hay que volver a ejecutar \"POST /login\"."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /servicios con el token ya revocado (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/servicios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "servicios"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

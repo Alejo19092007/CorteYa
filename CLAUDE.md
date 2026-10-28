@@ -84,11 +84,14 @@ Los controladores NO llevan lógica de negocio. Si una regla falla, el Service l
 | POST | /api/servicios | 201, 401, 422 |
 | PUT | /api/servicios/{id} | 200, 401, 404, 422 |
 | DELETE | /api/servicios/{id} | 204, 401, 404 |
-| GET | /api/barberos/{id}/disponibilidad?fecha= | 200, 401, 404 |
-| GET | /api/turnos?telefono= | 200, 401 |
+| GET | /api/barberos | 200, 401 |
+| GET | /api/barberos/{id}/disponibilidad?fecha=&servicios[]= | 200, 401, 404, 422 |
+| GET | /api/turnos?telefono= | 200, 401, 422 |
 | POST | /api/turnos | 201, 401, 422 |
 | PUT | /api/turnos/{id} | 200, 401, 404, 422 |
 | DELETE | /api/turnos/{id} (cancela, R3) | 204, 401, 404, 422 |
+
+Decisiones de la API (v0.3), además de las del README: solo las cuentas `admin` reciben token (403 a un barbero); el cliente se identifica por teléfono (si es nuevo se registra con el `nombre` enviado); `POST /api/turnos` nace `pendiente` y origen `whatsapp` vía `TurnoService::crearDesdeWhatsapp`; `DELETE` cancela como cliente (R3). Se agregó `GET /api/barberos` porque el bot necesita ofrecer barberos. El bot usará una cuenta de administrador (idealmente dedicada) para iniciar sesión.
 
 ## Funciones por usuario
 
