@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Exceptions\ReglaNegocioException;
+use App\Models\Cliente;
 use App\Models\Turno;
 use App\Repositories\BarberoRepository;
+use App\Repositories\ClienteRepository;
 use App\Repositories\TurnoRepository;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -46,6 +48,7 @@ class TurnoService
     public function __construct(
         private readonly TurnoRepository $turnos,
         private readonly BarberoRepository $barberos,
+        private readonly ClienteRepository $clientes,
     ) {}
 
     /**
@@ -74,6 +77,30 @@ class TurnoService
             ], $plan['lineas']);
 
             return $turno->load(['barbero.user', 'cliente', 'servicios']);
+        });
+    }
+
+    /**
+     * Crea un turno pedido por WhatsApp: al cliente se le identifica por su teléfono y, si es la
+     * primera vez que escribe, se registra con el nombre que trae. Nace "pendiente" (decisión 2).
+     * Todo va en una transacción: si R1 rechaza el turno, tampoco se crea el cliente.
+     *
+     * @param  array{telefono: string, nombre?: string|null, barbero_id: int, fecha: string, hora_inicio: string, servicios: array<int>}  $datos
+     */
+    public function crearDesdeWhatsapp(array $datos): Turno
+    {
+        return DB::transaction(function () use ($datos) {
+            $telefono = Cliente::normalizarTelefono($datos['telefono']);
+            $cliente = $this->clientes->buscarPorTelefono($telefono);
+
+            if (! $cliente) {
+                if (blank($datos['nombre'] ?? null)) {
+                    throw new ReglaNegocioException('Para registrar un cliente nuevo se necesita su nombre.');
+                }
+                $cliente = $this->clientes->buscarOCrear($telefono, $datos['nombre']);
+            }
+
+            return $this->crear(['cliente_id' => $cliente->id] + $datos, Turno::ORIGEN_WHATSAPP);
         });
     }
 
@@ -194,6 +221,25 @@ class TurnoService
         }
 
         return $libres;
+    }
+
+    /**
+     * Disponibilidad pedida por la API: recibe los servicios (no los minutos), porque la duración
+     * sale de ellos (R2). Si alguno no existe o está inactivo se rechaza en vez de devolver "sin horas".
+     *
+     * @return array{duracion: int, horas: array<int, string>}
+     */
+    public function disponibilidadParaServicios(int $barberoId, string $fecha, array $servicioIds): array
+    {
+        $ids = array_values(array_unique($servicioIds));
+
+        if ($this->turnos->serviciosActivos($ids)->count() !== count($ids)) {
+            throw new ReglaNegocioException('Uno o más servicios no están disponibles.');
+        }
+
+        $duracion = $this->duracionDe($ids);
+
+        return ['duracion' => $duracion, 'horas' => $this->disponibilidad($barberoId, $fecha, $duracion)];
     }
 
     /**

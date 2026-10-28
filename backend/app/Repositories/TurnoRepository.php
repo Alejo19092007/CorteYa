@@ -36,6 +36,18 @@ class TurnoRepository
             ->withQueryString();
     }
 
+    /** Turnos de un cliente, los más recientes primero. $estado (opcional) filtra por estado. */
+    public function delCliente(int $clienteId, ?string $estado = null): Collection
+    {
+        return Turno::where('cliente_id', $clienteId)
+            ->with(['barbero.user', 'cliente', 'servicios'])
+            ->when($estado, fn ($q, $estado) => $q->where('estado', $estado))
+            ->orderByDesc('fecha')
+            ->orderByDesc('hora_inicio')
+            ->limit(50)
+            ->get();
+    }
+
     /** Agenda de un barbero en una fecha, por hora (incluye cancelados para que se vean). */
     public function agendaDelBarbero(int $barberoId, string $fecha): Collection
     {
