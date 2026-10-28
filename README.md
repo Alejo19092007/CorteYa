@@ -15,7 +15,7 @@ Sistema de turnos para una barbería de Bucaramanga. Proyecto de aula de **Desar
 
 ## Estado
 
-En construcción. Entregas cerradas: `docs` (arquitectura C4), `v0.1` (modelo de datos) y `v0.2` (panel: login con roles, dashboard y CRUD). En curso: `v0.3` (API con Sanctum y despliegue).
+En construcción. Entregas cerradas: `docs` (arquitectura C4), `v0.1` (modelo de datos) y `v0.2` (panel: login con roles, dashboard y CRUD). En curso: `v0.3` (API con Sanctum, Postman y despliegue en Render + Aiven).
 
 ## Desarrollo local
 
@@ -108,6 +108,37 @@ Sobre una base remota, `demo:cargar` **exige** `SEED_BARBERO_PASSWORD` para que 
 - El plan gratuito **duerme el servicio tras 15 minutos sin visitas** y tarda cerca de un minuto en despertar. Antes de la sustentación hay que abrir la URL unos minutos antes.
 - Aiven puede apagar la base gratuita si no tiene actividad (avisa antes); se enciende de nuevo desde su consola.
 - Para probar la imagen en local: `docker build -t corteya-web backend`.
+
+## API REST
+
+Base: `https://corteya.onrender.com/api` (en local, `http://127.0.0.1:8000/api`). Autenticación con **Laravel Sanctum**: se inicia sesión en `POST /api/login`, que devuelve un token, y las demás rutas lo exigen en la cabecera `Authorization: Bearer <token>`. Todas las respuestas son JSON.
+
+| Método | Ruta | Qué hace | Códigos |
+|---|---|---|---|
+| POST | `/api/login` | Devuelve el token | 200, 401, 403, 422, 429 |
+| POST | `/api/logout` | Revoca el token usado | 204, 401 |
+| GET | `/api/servicios` | Lista servicios (`?activo=1` solo los que se ofrecen) | 200, 401 |
+| POST | `/api/servicios` | Crea un servicio | 201, 401, 422 |
+| PUT | `/api/servicios/{id}` | Edita un servicio | 200, 401, 404, 422 |
+| DELETE | `/api/servicios/{id}` | Borra un servicio que nunca se usó | 204, 401, 404, 422 |
+| GET | `/api/barberos` | Barberos activos (para que el bot los ofrezca) | 200, 401 |
+| GET | `/api/barberos/{id}/disponibilidad?fecha=&servicios[]=` | Horas libres ese día | 200, 401, 404, 422 |
+| GET | `/api/turnos?telefono=` | Turnos del cliente (`&estado=` opcional) | 200, 401, 422 |
+| POST | `/api/turnos` | Reserva un turno (nace `pendiente`, origen `whatsapp`) | 201, 401, 422 |
+| PUT | `/api/turnos/{id}` | Reprograma un turno pendiente o confirmado | 200, 401, 404, 422 |
+| DELETE | `/api/turnos/{id}` | Cancela el turno (no lo borra); aplica R3 | 204, 401, 404, 422 |
+
+Decisiones:
+- **Solo cuentas de administrador** reciben token (los barberos usan el panel). Otra cuenta recibe 403 al iniciar sesión.
+- El cliente se identifica por su **teléfono** (acepta `3001234567` o `573001234567`); si escribe por primera vez se registra con el `nombre` que se envíe.
+- `hora_fin` y `precio_total` **nunca** se envían: los calcula el sistema (R2). El precio y la duración quedan congelados en el turno.
+- Las reglas de negocio fallan con **422** y un `message` (R1 cruce o fuera de jornada, R3 cancelar con menos de 2 h, R4 cambio de estado no permitido). Son las mismas del panel porque ambos usan `TurnoService`.
+- Un nuevo login con el mismo `device_name` reemplaza al token anterior; los tokens se guardan con hash. El login admite 10 intentos por minuto.
+
+### Colección de Postman
+En [postman/](postman/): `CorteYa.postman_collection.json` y dos entornos (`produccion` y `local`). Se importan los tres archivos, se elige el entorno y se escribe la contraseña del administrador en la variable `password` (no se guarda en el repositorio). Con *Runner* se ejecuta toda la colección en orden: 27 peticiones, 45 verificaciones de código y de contenido, e incluye 401, 404, 422, R1, R3 y R4. Necesita al menos un barbero activo con horario (ver `demo:cargar`).
+
+Por consola: `npx newman run postman/CorteYa.postman_collection.json -e postman/CorteYa.local.postman_environment.json --env-var password=<clave>`.
 
 ## Créditos
 

@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Servicio;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 /**
  * Consultas sobre servicios. Aquí no hay reglas de negocio: solo Eloquent.
@@ -23,6 +24,15 @@ class ServicioRepository
             ->orderBy('nombre')
             ->paginate($porPagina)
             ->withQueryString();
+    }
+
+    /** Lista completa para la API (sin paginar: son pocos). $activo null = todos. */
+    public function listar(?bool $activo = null): Collection
+    {
+        return Servicio::query()
+            ->when($activo !== null, fn ($q) => $q->where('activo', $activo))
+            ->orderBy('nombre')
+            ->get();
     }
 
     public function crear(array $datos): Servicio

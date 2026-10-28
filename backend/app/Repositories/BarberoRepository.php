@@ -32,6 +32,12 @@ class BarberoRepository
             ->first();
     }
 
+    /** Barberos que reciben turnos (los que el bot puede ofrecer). */
+    public function activos(): Collection
+    {
+        return Barbero::with('user')->where('activo', true)->orderBy('id')->get();
+    }
+
     public function encontrar(int $barberoId): ?Barbero
     {
         return Barbero::find($barberoId);

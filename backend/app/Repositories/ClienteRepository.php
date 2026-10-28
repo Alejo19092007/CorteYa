@@ -15,6 +15,12 @@ class ClienteRepository
         return Cliente::where('telefono', $telefono)->first();
     }
 
+    /** Cliente del número dado; si es la primera vez que escribe, se registra con el nombre que trae WhatsApp. */
+    public function buscarOCrear(string $telefono, string $nombre): Cliente
+    {
+        return Cliente::firstOrCreate(['telefono' => $telefono], ['nombre' => $nombre]);
+    }
+
     /** Clientes registrados entre dos fechas (ambas incluidas). */
     public function contarNuevos(string $desde, string $hasta): int
     {
