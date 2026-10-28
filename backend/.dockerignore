@@ -1,0 +1,22 @@
+# Secretos y archivos de entorno: nunca van dentro de la imagen
+.env
+.env.*
+!.env.example
+
+# Se instalan dentro de la imagen
+vendor
+node_modules
+
+# Cachés y archivos generados en el computador de desarrollo
+bootstrap/cache/*.php
+storage/logs
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
+
+# No hacen falta para ejecutar
+tests
+phpunit.xml
+.phpunit.cache
+Dockerfile
+.dockerignore
