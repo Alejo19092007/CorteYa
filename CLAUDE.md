@@ -194,4 +194,7 @@ corteya/
 - PHP no está en el PATH: usar `C:\xampp\php\php.exe artisan ...` hasta agregar `C:\xampp\php` a las variables de entorno.
 - Laravel 13 exige PHP 8.3+, por eso se usa Laravel 12.
 - MySQL de XAMPP, base `corteya` (utf8mb4_unicode_ci).
-- Hosting previsto: Laravel Cloud (backend + MySQL) y Render (bot). GitHub: `Alejo19092007/CorteYa`.
+- Hosting (gratuito, sin tarjeta): **Render** para el backend (Docker, `backend/Dockerfile`) y el bot, y **Aiven** para MySQL 8.4 (plan Free). Laravel Cloud se descartó porque pide tarjeta. GitHub: `Alejo19092007/CorteYa`.
+- Render gratis: sin terminal (los datos base se cargan solos al arrancar con `ProduccionSeeder`; la demo se carga desde el PC con `php artisan demo:cargar`), el servicio duerme tras 15 min sin visitas (~1 min en despertar) y las 750 horas al mes son por cuenta, no por servicio.
+- Aiven: conexión cifrada con el certificado público `backend/certs/aiven-ca.pem` (`MYSQL_ATTR_SSL_CA`); la base exige llave primaria en todas las tablas; puede apagarse por inactividad.
+- Los seeders de producción no usan Faker (no está en la imagen). Las contraseñas de las cuentas salen de `SEED_ADMIN_PASSWORD` y `SEED_BARBERO_PASSWORD` y son obligatorias en producción.

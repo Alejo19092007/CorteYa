@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
         ]);
 
+        // Detrás del balanceador de Render la conexión interna es HTTP y el HTTPS lo termina Render.
+        // Confiar en el proxy hace que Laravel lea X-Forwarded-Proto y sepa que la petición original
+        // era https (si no, generaría enlaces y cookies como si fuera http).
+        $middleware->trustProxies(at: '*');
+
         // Si alguien con sesión abre /login, va a su pantalla de inicio según el rol.
         // Sin esto, Laravel lo mandaría a "dashboard", que le daría 403 a un barbero.
         $middleware->redirectUsersTo(fn () => route('inicio'));
