@@ -61,7 +61,7 @@ Crea `cliente/.env`:
 ```
 MODO_SIMULADOR=true
 CORTEYA_API_URL=https://corteya.onrender.com   # o http://127.0.0.1:8000 si corres el backend local
-BOT_EMAIL=admin@corteya.com
+BOT_EMAIL=bot@corteya.com
 BOT_PASSWORD=<contraseña>
 ```
 
@@ -94,7 +94,7 @@ Variables de entorno (en el panel de Render, **nunca** en el repositorio):
 |---|---|
 | `NODE_ENV` | `production` |
 | `CORTEYA_API_URL` | `https://corteya.onrender.com` |
-| `BOT_EMAIL` / `BOT_PASSWORD` | La cuenta de administrador con la que el bot inicia sesión |
+| `BOT_EMAIL` / `BOT_PASSWORD` | La cuenta de servicio del bot: `bot@corteya.com` y la contraseña que pusiste en `SEED_BOT_PASSWORD` del backend (no uses la cuenta del dueño) |
 | `CANAL` | `telegram` |
 | `TELEGRAM_BOT_TOKEN` | El token de @BotFather |
 | `TELEGRAM_WEBHOOK_SECRET` | Un secreto inventado (16 a 256 caracteres: letras, números, `-`, `_`) |

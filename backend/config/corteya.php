@@ -10,5 +10,7 @@ return [
     */
     'seed_admin_password' => env('SEED_ADMIN_PASSWORD'),
     'seed_barbero_password' => env('SEED_BARBERO_PASSWORD'),
+    // Cuenta de servicio del bot (bot@corteya.com). En producción es opcional: sin la variable no se crea.
+    'seed_bot_password' => env('SEED_BOT_PASSWORD'),
 
 ];
