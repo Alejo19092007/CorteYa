@@ -20,7 +20,11 @@ class Turno extends Model
     public const NO_ASISTIO = 'no_asistio';
 
     public const ORIGEN_PANEL = 'panel';
+    public const ORIGEN_TELEGRAM = 'telegram';
     public const ORIGEN_WHATSAPP = 'whatsapp';
+
+    /** Canales por los que el bot puede crear turnos (el panel no cuenta: lo crea el personal). */
+    public const ORIGENES_DEL_BOT = [self::ORIGEN_TELEGRAM, self::ORIGEN_WHATSAPP];
 
     protected $fillable = [
         'barbero_id',
