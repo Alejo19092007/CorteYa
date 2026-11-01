@@ -3,10 +3,12 @@
 namespace App\Http\Requests;
 
 use App\Models\Cliente;
+use App\Models\Turno;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
- * Turno pedido por el bot. El cliente se identifica por su teléfono de WhatsApp (no por un id).
+ * Turno pedido por el bot. El cliente se identifica por su teléfono (no por un id).
  * Como en el panel, NO se piden hora_fin ni precio_total: los calcula el sistema (R2).
  */
 class StoreTurnoApiRequest extends FormRequest
@@ -30,6 +32,8 @@ class StoreTurnoApiRequest extends FormRequest
             'telefono' => ['required', 'regex:/^57[0-9]{10}$/'],
             // Solo hace falta si el cliente escribe por primera vez (lo comprueba TurnoService)
             'nombre' => ['nullable', 'string', 'max:100'],
+            // Canal por el que escribió el cliente; si no se envía se asume Telegram
+            'origen' => ['nullable', Rule::in(Turno::ORIGENES_DEL_BOT)],
             'barbero_id' => ['required', 'integer', 'exists:barberos,id'],
             'fecha' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'hora_inicio' => ['required', 'date_format:H:i'],

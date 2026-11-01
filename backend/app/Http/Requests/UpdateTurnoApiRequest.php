@@ -9,7 +9,8 @@ class UpdateTurnoApiRequest extends StoreTurnoApiRequest
 {
     public function rules(): array
     {
-        return array_diff_key(parent::rules(), array_flip(['telefono', 'nombre']));
+        // El cliente y el canal de origen no cambian al reprogramar
+        return array_diff_key(parent::rules(), array_flip(['telefono', 'nombre', 'origen']));
     }
 
     protected function prepareForValidation(): void {}

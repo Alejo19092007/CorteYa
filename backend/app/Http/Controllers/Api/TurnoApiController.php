@@ -15,7 +15,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 /**
- * API de turnos para el bot de WhatsApp. Sin lógica de negocio: R1–R4 viven en TurnoService
+ * API de turnos para el bot (Telegram). Sin lógica de negocio: R1–R4 viven en TurnoService
  * y cuando una falla lanza ReglaNegocioException, que aquí se convierte en un 422.
  */
 class TurnoApiController extends Controller
@@ -38,10 +38,17 @@ class TurnoApiController extends Controller
         return TurnoResource::collection($turnos);
     }
 
-    /** Nace "pendiente" con origen "whatsapp": el dueño o el barbero lo confirman en el panel. */
+    /**
+     * Nace "pendiente" con el origen del bot ("telegram" si no se indica otro): el dueño o el barbero
+     * lo confirman en el panel.
+     */
     public function store(StoreTurnoApiRequest $request): TurnoResource
     {
-        return new TurnoResource($this->turnos->crearDesdeWhatsapp($request->validated()));
+        $datos = $request->validated();
+        $origen = $datos['origen'] ?? Turno::ORIGEN_TELEGRAM;
+        unset($datos['origen']);
+
+        return new TurnoResource($this->turnos->crearDesdeBot($datos, $origen));
     }
 
     /** Reprograma un turno pendiente o confirmado (R1 y R2 se vuelven a aplicar). */
