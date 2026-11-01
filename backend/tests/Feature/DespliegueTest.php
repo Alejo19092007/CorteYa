@@ -10,6 +10,7 @@ use App\Models\Turno;
 use App\Models\User;
 use Database\Seeders\AdminSeeder;
 use Database\Seeders\BarberoSeeder;
+use Database\Seeders\BotSeeder;
 use Database\Seeders\ProduccionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +24,12 @@ use Tests\TestCase;
 class DespliegueTest extends TestCase
 {
     use RefreshDatabase;
+
+    /** Ejecuta un seeder sin pasar por "db:seed" (que en producción pide confirmación). */
+    private function ejecutarSeeder(string $clase): void
+    {
+        (new $clase)->setContainer($this->app)->run();
+    }
 
     // ------------------------------------------------------- datos base (arranque)
 
@@ -51,7 +58,8 @@ class DespliegueTest extends TestCase
         $this->seed(ProduccionSeeder::class);
         $this->seed(ProduccionSeeder::class);
 
-        $this->assertSame(1, User::where('rol', 'admin')->count());
+        $this->assertSame(1, User::where('email', 'admin@corteya.com')->count());
+        $this->assertSame(1, User::where('email', BotSeeder::EMAIL)->count());
         $this->assertSame(6, Servicio::count());
     }
 
@@ -120,6 +128,81 @@ class DespliegueTest extends TestCase
         $this->seed(AdminSeeder::class);
 
         $this->assertTrue(Hash::check('admin12345', User::where('email', 'admin@corteya.com')->value('password')));
+    }
+
+    // ------------------------------------------------------- cuenta de servicio del bot
+
+    public function test_el_seeder_de_produccion_crea_la_cuenta_del_bot_con_la_clave_de_la_variable(): void
+    {
+        config(['corteya.seed_admin_password' => 'clave-del-servidor-1', 'corteya.seed_bot_password' => 'clave-del-bot-123']);
+
+        $this->seed(ProduccionSeeder::class);
+
+        $bot = User::where('email', BotSeeder::EMAIL)->firstOrFail();
+        $this->assertSame('admin', $bot->rol);                          // la API exige rol administrador
+        $this->assertTrue(Hash::check('clave-del-bot-123', $bot->password));
+
+        // Es una cuenta distinta de la del dueño y con otra contraseña
+        $dueno = User::where('email', 'admin@corteya.com')->firstOrFail();
+        $this->assertNotEquals($dueno->id, $bot->id);
+        $this->assertFalse(Hash::check('clave-del-bot-123', $dueno->password));
+    }
+
+    public function test_en_produccion_sin_la_variable_no_se_crea_la_cuenta_del_bot_pero_el_arranque_continua(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+        config(['corteya.seed_admin_password' => 'clave-del-servidor-1', 'corteya.seed_bot_password' => null]);
+
+        // Se ejecuta el seeder directo: "db:seed" en producción pide una confirmación interactiva (el arranque real usa --force)
+        $this->ejecutarSeeder(ProduccionSeeder::class);   // no lanza excepción: un servidor ya en marcha sigue arrancando
+
+        $this->assertSame(0, User::where('email', BotSeeder::EMAIL)->count());
+        $this->assertSame(1, User::where('email', 'admin@corteya.com')->count());
+        $this->assertSame(6, Servicio::count());
+    }
+
+    public function test_en_produccion_con_la_variable_si_se_crea_la_cuenta_del_bot(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+        config(['corteya.seed_admin_password' => 'clave-del-servidor-1', 'corteya.seed_bot_password' => 'clave-del-bot-123']);
+
+        $this->ejecutarSeeder(ProduccionSeeder::class);
+
+        $this->assertTrue(Hash::check('clave-del-bot-123', User::where('email', BotSeeder::EMAIL)->value('password')));
+    }
+
+    public function test_en_desarrollo_la_cuenta_del_bot_usa_la_clave_documentada(): void
+    {
+        config(['corteya.seed_bot_password' => null]);
+
+        $this->seed(BotSeeder::class);
+
+        $this->assertTrue(Hash::check('bot12345', User::where('email', BotSeeder::EMAIL)->value('password')));
+    }
+
+    public function test_cambiar_la_variable_actualiza_la_clave_del_bot_sin_duplicar_la_cuenta(): void
+    {
+        config(['corteya.seed_bot_password' => 'primera-clave-bot-1']);
+        $this->seed(BotSeeder::class);
+
+        config(['corteya.seed_bot_password' => 'segunda-clave-bot-2']);
+        $this->seed(BotSeeder::class);
+
+        $this->assertSame(1, User::where('email', BotSeeder::EMAIL)->count());
+        $this->assertTrue(Hash::check('segunda-clave-bot-2', User::where('email', BotSeeder::EMAIL)->value('password')));
+    }
+
+    public function test_el_bot_puede_iniciar_sesion_en_la_api_con_su_cuenta_dedicada(): void
+    {
+        config(['corteya.seed_bot_password' => 'clave-del-bot-123']);
+        $this->seed(BotSeeder::class);
+
+        $this->postJson('/api/login', ['email' => BotSeeder::EMAIL, 'password' => 'clave-del-bot-123', 'device_name' => 'bot-telegram'])
+            ->assertOk()
+            ->assertJsonPath('user.email', BotSeeder::EMAIL);
+
+        // Su contraseña no sirve para entrar como el dueño, ni al revés
+        $this->postJson('/api/login', ['email' => 'admin@corteya.com', 'password' => 'clave-del-bot-123'])->assertStatus(401);
     }
 
     // --------------------------------------------------- barberos de demo (repetible)
