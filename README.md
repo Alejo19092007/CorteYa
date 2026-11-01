@@ -39,8 +39,9 @@ php artisan serve
 | Barbero | `andres@corteya.com` | `barbero12345` |
 | Barbero | `camilo@corteya.com` | `barbero12345` |
 | Barbero | `diego@corteya.com` | `barbero12345` |
+| Bot (cuenta de servicio de la API) | `bot@corteya.com` | `bot12345` |
 
-En un servidor público se definen `SEED_ADMIN_PASSWORD` y `SEED_BARBERO_PASSWORD` en las variables de entorno para que **no** se usen estas. En producción son **obligatorias**: sin ellas el sistema se niega a crear las cuentas.
+En un servidor público se definen `SEED_ADMIN_PASSWORD`, `SEED_BARBERO_PASSWORD` y `SEED_BOT_PASSWORD` en las variables de entorno para que **no** se usen estas. En producción son **obligatorias**: sin ellas el sistema se niega a crear las cuentas.
 
 ## Datos base y datos de demo
 
@@ -87,6 +88,7 @@ Se cargan en el panel de Render (*Environment*), **nunca** en el repositorio:
 | `DB_PASSWORD` | La contraseña de Aiven |
 | `MYSQL_ATTR_SSL_CA` | `/var/www/html/certs/aiven-ca.pem` |
 | `SEED_ADMIN_PASSWORD` | La contraseña que tendrá `admin@corteya.com` |
+| `SEED_BOT_PASSWORD` | La contraseña de `bot@corteya.com`, la cuenta con la que el bot inicia sesión en la API (así el bot no usa la cuenta del dueño). Opcional: sin ella no se crea la cuenta |
 | `SESSION_SECURE_COOKIE` | `true` |
 
 La imagen ya trae por defecto `APP_ENV=production`, `APP_DEBUG=false`, `APP_LOCALE=es` y `LOG_CHANNEL=stderr` (los errores se ven en los logs de Render).
