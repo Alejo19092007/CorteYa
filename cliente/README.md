@@ -19,7 +19,7 @@ Cliente (Telegram) ──► adaptador del canal ──► conversación (máqui
 | `src/whatsapp/`, `src/app.js` | Adaptador de WhatsApp Cloud API (webhook con firma HMAC). |
 | `src/bot/formato.js` | Fechas en hora de Colombia (el servidor está en UTC), pesos, horas. |
 
-**Uso de la API (requisito de la rúbrica):** lee con `GET /api/servicios`, `GET /api/barberos`, `GET /api/barberos/{id}/disponibilidad` y `GET /api/turnos?telefono=`; escribe con `POST /api/turnos` (reservar) y `DELETE /api/turnos/{id}` (cancelar). Los turnos reservados aparecen en el panel como **pendientes** para que el dueño o el barbero los confirmen.
+**Uso de la API (requisito de la rúbrica):** lee con `GET /api/servicios`, `GET /api/barberos`, `GET /api/barberos/{id}/disponibilidad` y `GET /api/turnos?telefono=`; escribe con `POST /api/turnos` (reservar) y `DELETE /api/turnos/{id}` (cancelar). Los turnos reservados aparecen en el panel como **pendientes** y con el origen **Telegram** (el bot envía el campo `origen` según el canal activo), para que el dueño o el barbero los confirmen.
 
 ### Conversación
 

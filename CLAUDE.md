@@ -14,7 +14,7 @@ Responde siempre en español, con pasos concretos y comandos reales, y explica b
 
 Sistema de turnos para una barbería de Bucaramanga:
 - El **dueño** y los **barberos** gestionan todo en un **panel web** (Laravel + Blade + Bootstrap).
-- Los **clientes** reservan, consultan y cancelan turnos por **WhatsApp** (bot que consume la API).
+- Los **clientes** reservan, consultan y cancelan turnos por **Telegram** (bot que consume la API).
 
 La entrevista al dueño (evidencia) y el nombre real de la barbería se harán más adelante.
 
@@ -28,8 +28,8 @@ La entrevista al dueño (evidencia) y el nombre real de la barbería se harán m
 
 - **Panel web** — Laravel 12, Blade, Bootstrap 5. Roles: `admin` y `barbero`.
 - **API REST** — mismo proyecto Laravel, rutas `/api`, protegida con **Sanctum**, respuestas con **API Resources**.
-- **Bot de WhatsApp** — app aparte en `/cliente` (Node.js + Express), usa la **WhatsApp Cloud API oficial de Meta** (webhook HTTPS). Inicia sesión en la API y usa el token Sanctum. Es un *contenedor del sistema*, no un sistema externo.
-  - **Cambio de canal (v0.4):** Meta no envió el código de verificación para crear la cuenta de desarrollador, así que el canal activo es **Telegram** (Bot API, webhook HTTPS en Render; polling en local). El adaptador de WhatsApp quedó construido y probado (`CANAL=whatsapp`). La conversación (`cliente/src/bot/`) y el cliente de la API son independientes del canal. En Telegram el teléfono del cliente se obtiene con el botón "Compartir mi número" (se verifica que sea el suyo). El documento C4 entregado dice WhatsApp: tenerlo presente en la sustentación.
+- **Bot de turnos** — app aparte en `/cliente` (Node.js + Express). Canal activo: **Telegram** (Bot API oficial, webhook HTTPS). El diseño original usaba la **WhatsApp Cloud API de Meta** y su adaptador sigue disponible. Inicia sesión en la API y usa el token Sanctum. Es un *contenedor del sistema*, no un sistema externo.
+  - **Cambio de canal (v0.4):** el diseño era WhatsApp, pero Meta no envió el código de verificación para crear la cuenta de desarrollador, así que el canal activo es **Telegram** (Bot API, webhook HTTPS en Render; polling en local). El adaptador de WhatsApp quedó construido y probado (`CANAL=whatsapp`). La conversación (`cliente/src/bot/`) y el cliente de la API son independientes del canal. En Telegram el teléfono del cliente se obtiene con el botón "Compartir mi número" (se verifica que sea el suyo). El documento C4 entregado dice WhatsApp: tenerlo presente en la sustentación.
 - **Base de datos** — MySQL en la nube.
 
 Flujo obligatorio en Laravel:
@@ -59,7 +59,7 @@ Los controladores NO llevan lógica de negocio. Si una regla falla, el Service l
 ### Decisiones tomadas
 
 1. **R3 solo para el cliente (API/bot).** El admin puede cancelar en cualquier momento. `TurnoService::cancelar` recibe quién cancela.
-2. **Estado inicial:** los turnos creados en el panel nacen `confirmado`; los creados por WhatsApp nacen `pendiente`.
+2. **Estado inicial:** los turnos creados en el panel nacen `confirmado`; los creados por el bot (Telegram) nacen `pendiente`.
 3. **Confirmar pendientes:** el admin (cualquier turno, desde el listado) y el barbero (solo los suyos, botón "Confirmar" en "Mi agenda").
 4. **"Atendido" y "No asistió"** solo se permiten cuando ya pasó la `hora_inicio` del turno; si no, 422 "Aún no ha llegado la hora del turno".
 5. **Botones en "Mi agenda" según estado:** `pendiente` → Confirmar; `confirmado` → Atendido / No asistió (solo si ya pasó la hora); `atendido`, `cancelado` y `no_asistio` → sin botones.
@@ -72,7 +72,7 @@ Los controladores NO llevan lógica de negocio. Si una regla falla, el Service l
 - `horarios`: id, barbero_id (FK, **1:N**), dia_semana (1–7), hora_inicio, hora_fin
 - `clientes`: id, nombre, telefono (único, con 57), turnos_atendidos
 - `servicios`: id, nombre, duracion_min, precio, activo
-- `turnos`: id, barbero_id (FK), cliente_id (FK), fecha, hora_inicio, hora_fin, precio_total, estado (enum), origen (panel | whatsapp)
+- `turnos`: id, barbero_id (FK), cliente_id (FK), fecha, hora_inicio, hora_fin, precio_total, estado (enum), origen (panel | telegram | whatsapp)
 - `turno_servicio` (pivote **N:M** turnos–servicios): turno_id, servicio_id, precio, duracion_min (guardan el valor al momento de reservar)
 
 ## API REST
@@ -92,13 +92,13 @@ Los controladores NO llevan lógica de negocio. Si una regla falla, el Service l
 | PUT | /api/turnos/{id} | 200, 401, 404, 422 |
 | DELETE | /api/turnos/{id} (cancela, R3) | 204, 401, 404, 422 |
 
-Decisiones de la API (v0.3), además de las del README: solo las cuentas `admin` reciben token (403 a un barbero); el cliente se identifica por teléfono (si es nuevo se registra con el `nombre` enviado); `POST /api/turnos` nace `pendiente` y origen `whatsapp` vía `TurnoService::crearDesdeWhatsapp`; `DELETE` cancela como cliente (R3). Se agregó `GET /api/barberos` porque el bot necesita ofrecer barberos. El bot usará una cuenta de administrador (idealmente dedicada) para iniciar sesión.
+Decisiones de la API (v0.3), además de las del README: solo las cuentas `admin` reciben token (403 a un barbero); el cliente se identifica por teléfono (si es nuevo se registra con el `nombre` enviado); `POST /api/turnos` nace `pendiente` con origen `telegram` (o el canal indicado en el campo opcional `origen`: `telegram` | `whatsapp`) vía `TurnoService::crearDesdeBot`; `DELETE` cancela como cliente (R3). Se agregó `GET /api/barberos` porque el bot necesita ofrecer barberos. El bot usará una cuenta de administrador (idealmente dedicada) para iniciar sesión.
 
 ## Funciones por usuario
 
 - **Dueño (admin):** barberos, servicios y precios, horarios, agenda de todos, clientes y fidelidad, dashboard de ingresos (gráfico).
 - **Barbero:** su agenda del día, confirmar / marcar atendido / no asistió (solo sus turnos), sus cortes del mes (opcional). No ve a otros barberos ni reportes.
-- **Cliente (WhatsApp):** ver servicios, reservar, consultar y cancelar su turno, cortes que faltan para el gratis (R5, opcional).
+- **Cliente (Telegram):** ver servicios, reservar, consultar y cancelar su turno, cortes que faltan para el gratis (R5, opcional).
 - Fuera de alcance: ver "Alcance y prioridades".
 
 ## Requisitos de la rúbrica (checklist)
@@ -155,7 +155,7 @@ Seeder de la v0.1 pensado para la sustentación. Los turnos de **hoy** se crean 
 |---|---|---|
 | `now() - 2h` | `confirmado` | Marcar atendido |
 | `now() - 1h` | `confirmado` | Marcar no asistió |
-| `now() + 1h` | `pendiente`, origen `whatsapp` | Confirmar; y 422 de R3 al intentar cancelarlo como cliente (API/bot), porque faltan menos de 2 h |
+| `now() + 1h` | `pendiente`, origen `telegram` | Confirmar; y 422 de R3 al intentar cancelarlo como cliente (API/bot), porque faltan menos de 2 h |
 | `now() + 3h` | `confirmado` | "Atendido" bloqueado (422 "Aún no ha llegado la hora del turno"); cancelación exitosa como cliente (faltan más de 2 h) |
 
 Contenido del seeder:
@@ -177,7 +177,7 @@ Reglas del seeder:
 ```
 corteya/
 ├── backend/      proyecto Laravel: panel + API
-├── cliente/      bot de WhatsApp (Node.js)
+├── cliente/      bot de turnos (Node.js, Telegram)
 ├── docs/arquitectura.pdf
 ├── postman/
 └── README.md
@@ -189,7 +189,7 @@ corteya/
 2. **S10–11 · v0.1** — migraciones, modelos, factories y seeders. Rama `feature/modelo-datos` (desde `main`); se fusiona a `main` solo después de la etiqueta `docs`.
 3. S12–13 · v0.2 — login con roles, dashboard y CRUD
 4. S14 · v0.3 — API con Sanctum, Postman y URL pública
-5. S15 · v0.4 — bot de WhatsApp conectado a la URL pública
+5. S15 · v0.4 — bot (Telegram) conectado a la URL pública
 6. S16 · v1.0 — sustentación en vivo individual (debe poder explicar y modificar cualquier parte)
 
 ## Entorno local (Windows)

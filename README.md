@@ -124,7 +124,7 @@ Base: `https://corteya.onrender.com/api` (en local, `http://127.0.0.1:8000/api`)
 | GET | `/api/barberos` | Barberos activos (para que el bot los ofrezca) | 200, 401 |
 | GET | `/api/barberos/{id}/disponibilidad?fecha=&servicios[]=` | Horas libres ese día | 200, 401, 404, 422 |
 | GET | `/api/turnos?telefono=` | Turnos del cliente (`&estado=` opcional) | 200, 401, 422 |
-| POST | `/api/turnos` | Reserva un turno (nace `pendiente`, origen `whatsapp`) | 201, 401, 422 |
+| POST | `/api/turnos` | Reserva un turno (nace `pendiente`, origen `telegram`; opcional `origen`: `telegram` o `whatsapp`) | 201, 401, 422 |
 | PUT | `/api/turnos/{id}` | Reprograma un turno pendiente o confirmado | 200, 401, 404, 422 |
 | DELETE | `/api/turnos/{id}` | Cancela el turno (no lo borra); aplica R3 | 204, 401, 404, 422 |
 
