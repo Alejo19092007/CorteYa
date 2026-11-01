@@ -1,0 +1,19 @@
+{
+  "name": "corteya-bot",
+  "version": "0.4.0",
+  "description": "Bot de CorteYa (Telegram, con adaptador de WhatsApp): los clientes ven servicios, reservan, consultan y cancelan turnos consumiendo la API REST.",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --env-file=.env src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}
