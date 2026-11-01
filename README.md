@@ -9,13 +9,13 @@ Sistema de turnos para una barbería de Bucaramanga. Proyecto de aula de **Desar
 | Carpeta | Descripción |
 |---|---|
 | `backend/` | Laravel 12: panel web (Blade + Bootstrap 5) y API REST con Sanctum |
-| `cliente/` | Bot de WhatsApp (Node.js) que consume la API |
+| `cliente/` | Bot de turnos (Node.js + Express; canal Telegram, con adaptador de WhatsApp) que consume la API. Ver [cliente/README.md](cliente/README.md) |
 | `docs/` | Documento de arquitectura (C4) |
 | `postman/` | Colección de Postman |
 
 ## Estado
 
-En construcción. Entregas cerradas: `docs` (arquitectura C4), `v0.1` (modelo de datos), `v0.2` (panel: login con roles, dashboard y CRUD) y `v0.3` (API con Sanctum, colección de Postman y despliegue público en Render + Aiven: https://corteya.onrender.com). En curso: `v0.4` (bot de WhatsApp en `cliente/`).
+En construcción. Entregas cerradas: `docs` (arquitectura C4), `v0.1` (modelo de datos), `v0.2` (panel: login con roles, dashboard y CRUD) y `v0.3` (API con Sanctum, colección de Postman y despliegue público en Render + Aiven: https://corteya.onrender.com). En curso: `v0.4` (bot en `cliente/`: la conversación, el cliente de la API y los adaptadores de Telegram y WhatsApp están hechos y probados; falta conectarlo al canal real y desplegarlo).
 
 ## Desarrollo local
 

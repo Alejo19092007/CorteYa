@@ -29,6 +29,7 @@ La entrevista al dueño (evidencia) y el nombre real de la barbería se harán m
 - **Panel web** — Laravel 12, Blade, Bootstrap 5. Roles: `admin` y `barbero`.
 - **API REST** — mismo proyecto Laravel, rutas `/api`, protegida con **Sanctum**, respuestas con **API Resources**.
 - **Bot de WhatsApp** — app aparte en `/cliente` (Node.js + Express), usa la **WhatsApp Cloud API oficial de Meta** (webhook HTTPS). Inicia sesión en la API y usa el token Sanctum. Es un *contenedor del sistema*, no un sistema externo.
+  - **Cambio de canal (v0.4):** Meta no envió el código de verificación para crear la cuenta de desarrollador, así que el canal activo es **Telegram** (Bot API, webhook HTTPS en Render; polling en local). El adaptador de WhatsApp quedó construido y probado (`CANAL=whatsapp`). La conversación (`cliente/src/bot/`) y el cliente de la API son independientes del canal. En Telegram el teléfono del cliente se obtiene con el botón "Compartir mi número" (se verifica que sea el suyo). El documento C4 entregado dice WhatsApp: tenerlo presente en la sustentación.
 - **Base de datos** — MySQL en la nube.
 
 Flujo obligatorio en Laravel:
