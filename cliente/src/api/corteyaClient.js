@@ -48,7 +48,7 @@ export class ApiAuthError extends Error {
  * @param {typeof fetch} [opciones.fetchFn]  se puede reemplazar en las pruebas
  * @param {number} [opciones.timeoutMs]      el plan gratuito de Render tarda ~1 min en despertar
  */
-export function crearClienteApi({ baseUrl, email, password, fetchFn = fetch, timeoutMs = 60_000, deviceName = 'bot-whatsapp' }) {
+export function crearClienteApi({ baseUrl, email, password, fetchFn = fetch, timeoutMs = 60_000, deviceName = 'bot' }) {
   const base = baseUrl.replace(/\/+$/, '');
   let token = null;
   let loginEnCurso = null;
@@ -159,12 +159,13 @@ export function crearClienteApi({ baseUrl, email, password, fetchFn = fetch, tim
       return (await llamar('GET', '/api/turnos', { query: { telefono } })).data;
     },
 
-    /** Escritura: reserva un turno (nace pendiente, origen whatsapp). Puede lanzar ApiRechazo (R1...). */
-    async crearTurno({ telefono, nombre, barberoId, fecha, horaInicio, servicioIds }) {
+    /** Escritura: reserva un turno (nace pendiente, con el origen del canal). Puede lanzar ApiRechazo (R1...). */
+    async crearTurno({ telefono, nombre, barberoId, fecha, horaInicio, servicioIds, origen }) {
       return (await llamar('POST', '/api/turnos', {
         cuerpo: {
           telefono,
           nombre: nombre || undefined,
+          origen: origen || undefined, // canal del bot: telegram o whatsapp (si no se envía, la API asume telegram)
           barbero_id: barberoId,
           fecha,
           hora_inicio: horaInicio,

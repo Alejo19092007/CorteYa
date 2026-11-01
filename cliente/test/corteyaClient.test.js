@@ -33,7 +33,7 @@ test('inicia sesión una vez y manda el token Bearer en las llamadas siguientes'
   await api.servicios();
 
   assert.equal(llamadas.filter((l) => l.url.pathname === '/api/login').length, 1);
-  assert.deepEqual(llamadas[0].cuerpo, { email: 'bot@corteya.com', password: 'clave', device_name: 'bot-whatsapp' });
+  assert.deepEqual(llamadas[0].cuerpo, { email: 'bot@corteya.com', password: 'clave', device_name: 'bot' });
   assert.equal(llamadas[0].cabeceras.Authorization, undefined); // el login no lleva token
   assert.equal(llamadas[1].cabeceras.Authorization, 'Bearer abc');
   assert.equal(llamadas[2].cabeceras.Authorization, 'Bearer abc');
@@ -74,6 +74,28 @@ test('crearTurno envía los datos que espera la API y no manda un nombre vacío'
     telefono: '573001234567', nombre: 'Daniela', barbero_id: 2, fecha: '2026-11-03', hora_inicio: '10:00', servicios: [1, 3],
   });
   assert.equal('nombre' in llamadas[2].cuerpo, false);
+});
+
+test('crearTurno envía el canal de origen cuando se indica y lo omite si no', async () => {
+  const turno = { id: 9, estado: 'pendiente' };
+  const { fetchFn, llamadas } = fetchFalso(loginOk(), json(201, { data: turno }), json(201, { data: turno }));
+  const api = nuevoCliente(fetchFn);
+  const datos = { telefono: '573001234567', nombre: 'Daniela', barberoId: 2, fecha: '2026-11-03', horaInicio: '10:00', servicioIds: [1] };
+
+  await api.crearTurno({ ...datos, origen: 'telegram' });
+  await api.crearTurno(datos);
+
+  assert.equal(llamadas[1].cuerpo.origen, 'telegram');
+  assert.equal('origen' in llamadas[2].cuerpo, false);   // sin origen, la API asume Telegram
+});
+
+test('el nombre del token se puede personalizar (un token por canal)', async () => {
+  const { fetchFn, llamadas } = fetchFalso(loginOk(), json(200, { data: [] }));
+  const api = crearClienteApi({ baseUrl: 'https://corteya.example', email: 'a@b.c', password: 'x', fetchFn, deviceName: 'bot-telegram' });
+
+  await api.servicios();
+
+  assert.equal(llamadas[0].cuerpo.device_name, 'bot-telegram');
 });
 
 test('cancelarTurno usa DELETE y acepta el 204 sin cuerpo', async () => {

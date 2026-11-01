@@ -14,11 +14,17 @@ import { crearEnviador } from './whatsapp/cloudApi.js';
 
 const config = cargarConfig();
 
-const api = crearClienteApi({ baseUrl: config.apiUrl, email: config.botEmail, password: config.botPassword });
+const api = crearClienteApi({
+  baseUrl: config.apiUrl,
+  email: config.botEmail,
+  password: config.botPassword,
+  deviceName: `bot-${config.canal}`, // un token por canal: iniciar sesión de nuevo reemplaza solo el del mismo canal
+});
 const sesiones = crearSesiones();
 setInterval(() => sesiones.limpiar(), 10 * 60 * 1000).unref();
 
-const { procesar } = crearBot({ api, sesiones });
+// El origen de los turnos es el canal activo (telegram por defecto; también en el simulador)
+const { procesar } = crearBot({ api, sesiones, origen: config.canal });
 const cola = crearCola();
 
 // Canal Telegram

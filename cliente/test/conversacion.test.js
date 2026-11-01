@@ -136,9 +136,18 @@ test('reserva completa: servicios, barbero, fecha, hora y confirmación crean el
   assert.match(final, /pendiente de confirmación/);
   assert.match(final, /Turno #77/);
   assert.deepEqual(llamadas.crearTurno, [{
-    telefono: TEL, nombre: 'Daniela Silva', barberoId: 1, fecha: '2026-11-03', horaInicio: '09:15', servicioIds: [1, 2],
+    telefono: TEL, nombre: 'Daniela Silva', barberoId: 1, fecha: '2026-11-03', horaInicio: '09:15', servicioIds: [1, 2], origen: 'telegram',
   }]);
   assert.equal(sesiones.obtener(TEL), null);              // la conversación terminó
+});
+
+test('el turno se registra con el canal por el que escribió el cliente', async () => {
+  const { api, llamadas } = apiFalsa();
+  const botWhatsapp = crearBot({ api, sesiones: crearSesiones(), origen: 'whatsapp', ahora: () => AHORA, registrar: silencio });
+
+  for (const texto of ['2', '1', '1', 'mañana', '1', 'sí']) await botWhatsapp.procesar({ telefono: TEL, nombre: 'Daniela', texto });
+
+  assert.equal(llamadas.crearTurno[0].origen, 'whatsapp');
 });
 
 test('la disponibilidad se consulta con el barbero, la fecha y los servicios elegidos', async () => {

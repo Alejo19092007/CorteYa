@@ -23,7 +23,7 @@ const ESTADOS_VISIBLES = {
   confirmado: 'confirmado',
 };
 
-export function crearBot({ api, sesiones, ahora = () => new Date(), registrar = console }) {
+export function crearBot({ api, sesiones, origen = 'telegram', ahora = () => new Date(), registrar = console }) {
   const hoy = () => hoyEnBogota(ahora());
 
   // ---------------------------------------------------------------- textos
@@ -286,6 +286,7 @@ export function crearBot({ api, sesiones, ahora = () => new Date(), registrar = 
         fecha: datos.fecha,
         horaInicio: datos.hora,
         servicioIds: datos.servicios.map((s) => s.id),
+        origen, // el panel muestra por qué canal llegó el turno
       });
 
       sesiones.borrar(telefono);
