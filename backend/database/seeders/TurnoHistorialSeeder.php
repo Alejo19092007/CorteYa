@@ -98,11 +98,11 @@ class TurnoHistorialSeeder extends Seeder
         return [$estado, $this->origenAleatorio()];
     }
 
-    /** Turnos futuros: los de WhatsApp pueden estar pendientes; los del panel nacen confirmados. */
+    /** Turnos futuros: los de Telegram pueden estar pendientes; los del panel nacen confirmados. */
     private function estadoFuturo(): array
     {
         $origen = $this->origenAleatorio();
-        $estado = ($origen === Turno::ORIGEN_WHATSAPP && random_int(0, 1) === 0)
+        $estado = ($origen === Turno::ORIGEN_TELEGRAM && random_int(0, 1) === 0)
             ? Turno::PENDIENTE
             : Turno::CONFIRMADO;
 
@@ -111,7 +111,7 @@ class TurnoHistorialSeeder extends Seeder
 
     private function origenAleatorio(): string
     {
-        return random_int(1, 100) <= 55 ? Turno::ORIGEN_WHATSAPP : Turno::ORIGEN_PANEL;
+        return random_int(1, 100) <= 55 ? Turno::ORIGEN_TELEGRAM : Turno::ORIGEN_PANEL;
     }
 
     /**
@@ -128,7 +128,7 @@ class TurnoHistorialSeeder extends Seeder
             Turno::factory()
                 ->para($barbero, $fiel, today()->subDays($dias)->setTime(20, 0), $corte)
                 ->estado(Turno::ATENDIDO)
-                ->origen(Turno::ORIGEN_WHATSAPP)
+                ->origen(Turno::ORIGEN_TELEGRAM)
                 ->create();
         }
     }

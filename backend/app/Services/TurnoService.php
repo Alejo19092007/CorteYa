@@ -56,7 +56,7 @@ class TurnoService
      *
      * @param  array{barbero_id: int, cliente_id: int, fecha: string, hora_inicio: string, servicios: array<int>}  $datos
      *                                                                                                                      La hora de fin y el precio NO se reciben: los calcula R2.
-     * @param  string  $origen  Turno::ORIGEN_PANEL o Turno::ORIGEN_WHATSAPP
+     * @param  string  $origen  Turno::ORIGEN_PANEL, ORIGEN_TELEGRAM u ORIGEN_WHATSAPP
      */
     public function crear(array $datos, string $origen): Turno
     {
@@ -71,7 +71,7 @@ class TurnoService
                 'hora_inicio' => $plan['inicio']->format('H:i:s'),
                 'hora_fin' => $plan['fin']->format('H:i:s'),
                 'precio_total' => $plan['precio_total'],
-                // Decisión 2: lo creado en el panel nace confirmado; lo de WhatsApp, pendiente
+                // Decisión 2: lo creado en el panel nace confirmado; lo que pide el bot (Telegram/WhatsApp), pendiente
                 'estado' => $origen === Turno::ORIGEN_PANEL ? Turno::CONFIRMADO : Turno::PENDIENTE,
                 'origen' => $origen,
             ], $plan['lineas']);
@@ -81,15 +81,21 @@ class TurnoService
     }
 
     /**
-     * Crea un turno pedido por WhatsApp: al cliente se le identifica por su teléfono y, si es la
-     * primera vez que escribe, se registra con el nombre que trae. Nace "pendiente" (decisión 2).
-     * Todo va en una transacción: si R1 rechaza el turno, tampoco se crea el cliente.
+     * Crea un turno pedido por el bot (Telegram por defecto): al cliente se le identifica por su
+     * teléfono y, si es la primera vez que escribe, se registra con el nombre que trae.
+     * Nace "pendiente" (decisión 2). Todo va en una transacción: si R1 rechaza el turno,
+     * tampoco se crea el cliente.
      *
      * @param  array{telefono: string, nombre?: string|null, barbero_id: int, fecha: string, hora_inicio: string, servicios: array<int>}  $datos
+     * @param  string  $origen  canal del bot: Turno::ORIGEN_TELEGRAM (por defecto) u ORIGEN_WHATSAPP
      */
-    public function crearDesdeWhatsapp(array $datos): Turno
+    public function crearDesdeBot(array $datos, string $origen = Turno::ORIGEN_TELEGRAM): Turno
     {
-        return DB::transaction(function () use ($datos) {
+        if (! in_array($origen, Turno::ORIGENES_DEL_BOT, true)) {
+            throw new InvalidArgumentException("El origen «{$origen}» no es un canal del bot.");
+        }
+
+        return DB::transaction(function () use ($datos, $origen) {
             $telefono = Cliente::normalizarTelefono($datos['telefono']);
             $cliente = $this->clientes->buscarPorTelefono($telefono);
 
@@ -100,7 +106,7 @@ class TurnoService
                 $cliente = $this->clientes->buscarOCrear($telefono, $datos['nombre']);
             }
 
-            return $this->crear(['cliente_id' => $cliente->id] + $datos, Turno::ORIGEN_WHATSAPP);
+            return $this->crear(['cliente_id' => $cliente->id] + $datos, $origen);
         });
     }
 

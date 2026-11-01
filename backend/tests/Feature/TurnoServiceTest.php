@@ -127,9 +127,30 @@ class TurnoServiceTest extends TestCase
 
     public function test_estado_inicial_segun_el_origen(): void
     {
-        // Decisión 2: panel → confirmado; WhatsApp → pendiente
+        // Decisión 2: panel → confirmado; bot (Telegram) → pendiente
         $this->assertSame(Turno::CONFIRMADO, $this->crear('10:00', origen: Turno::ORIGEN_PANEL)->estado);
-        $this->assertSame(Turno::PENDIENTE, $this->crear('12:00', origen: Turno::ORIGEN_WHATSAPP)->estado);
+        $this->assertSame(Turno::PENDIENTE, $this->crear('12:00', origen: Turno::ORIGEN_TELEGRAM)->estado);
+    }
+
+    public function test_crear_desde_el_bot_usa_telegram_por_defecto_y_acepta_whatsapp(): void
+    {
+        $datos = ['telefono' => '573001234567', 'nombre' => 'Daniela'] + $this->datos('10:00');
+        unset($datos['cliente_id']);
+
+        $porDefecto = $this->service->crearDesdeBot($datos);
+        $this->assertSame(Turno::ORIGEN_TELEGRAM, $porDefecto->origen);
+        $this->assertSame(Turno::PENDIENTE, $porDefecto->estado);
+
+        $datos['hora_inicio'] = '12:00';
+        $this->assertSame(Turno::ORIGEN_WHATSAPP, $this->service->crearDesdeBot($datos, Turno::ORIGEN_WHATSAPP)->origen);
+    }
+
+    public function test_crear_desde_el_bot_no_acepta_el_panel_como_canal(): void
+    {
+        $datos = ['telefono' => '573001234567', 'nombre' => 'Daniela'] + $this->datos('10:00');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->service->crearDesdeBot($datos, Turno::ORIGEN_PANEL);
     }
 
     public function test_rechaza_pedir_un_turno_sin_servicios(): void
@@ -234,7 +255,7 @@ class TurnoServiceTest extends TestCase
 
     public function test_r4_transiciones_validas(): void
     {
-        $turno = $this->crear('12:00', origen: Turno::ORIGEN_WHATSAPP); // pendiente
+        $turno = $this->crear('12:00', origen: Turno::ORIGEN_TELEGRAM); // pendiente
         $turno = $this->service->cambiarEstado($turno, Turno::CONFIRMADO);
         $this->assertSame(Turno::CONFIRMADO, $turno->estado);
 
@@ -245,7 +266,7 @@ class TurnoServiceTest extends TestCase
 
     public function test_r4_transiciones_invalidas(): void
     {
-        $pendiente = $this->crear('09:00', origen: Turno::ORIGEN_WHATSAPP);
+        $pendiente = $this->crear('09:00', origen: Turno::ORIGEN_TELEGRAM);
         $confirmado = $this->crear('12:00');
         Carbon::setTestNow(Carbon::parse('2026-11-04 08:00:00')); // todo el 3 de noviembre quedó atrás
 

@@ -103,7 +103,9 @@
                                         <td>{{ $turno->barbero->user->name }}</td>
                                         <td><x-estado-turno :estado="$turno->estado" /></td>
                                         <td>
-                                            @if ($turno->origen === 'whatsapp')
+                                            @if ($turno->origen === 'telegram')
+                                                <i class="bi bi-telegram" style="color: #229ED9" title="Telegram" aria-label="Telegram"></i>
+                                            @elseif ($turno->origen === 'whatsapp')
                                                 <i class="bi bi-whatsapp text-success" title="WhatsApp" aria-label="WhatsApp"></i>
                                             @else
                                                 <i class="bi bi-display text-secondary" title="Panel" aria-label="Panel"></i>

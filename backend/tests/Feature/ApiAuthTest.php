@@ -34,7 +34,7 @@ class ApiAuthTest extends TestCase
 
     public function test_el_login_devuelve_un_token_que_abre_las_rutas_protegidas(): void
     {
-        $respuesta = $this->login(['device_name' => 'bot-whatsapp'])
+        $respuesta = $this->login(['device_name' => 'bot-telegram'])
             ->assertOk()
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('user.email', 'bot@corteya.test')
@@ -77,8 +77,8 @@ class ApiAuthTest extends TestCase
 
     public function test_iniciar_sesion_de_nuevo_con_el_mismo_nombre_reemplaza_el_token(): void
     {
-        $this->login(['device_name' => 'bot-whatsapp'])->assertOk();
-        $this->login(['device_name' => 'bot-whatsapp'])->assertOk();
+        $this->login(['device_name' => 'bot-telegram'])->assertOk();
+        $this->login(['device_name' => 'bot-telegram'])->assertOk();
         $this->assertDatabaseCount('personal_access_tokens', 1);
 
         // Otro nombre es otro dispositivo: convive con el anterior

@@ -299,11 +299,12 @@ class DashboardTest extends TestCase
         $cliente = Cliente::factory()->create(['nombre' => 'Sebastián Rojas']);
         Turno::factory()
             ->para($this->barbero, $cliente, Carbon::parse('2026-11-15 11:00'), collect([Servicio::factory()->create(['duracion_min' => 30])]))
-            ->estado(Turno::PENDIENTE)->origen(Turno::ORIGEN_WHATSAPP)->create();
+            ->estado(Turno::PENDIENTE)->origen(Turno::ORIGEN_TELEGRAM)->create();
 
         $this->actingAs($this->admin)->get(route('dashboard'))
             ->assertSee('Sebastián Rojas')
             ->assertSee('Pendiente')
+            ->assertSee('title="Telegram"', false)   // el origen del turno se muestra con el ícono de su canal
             ->assertSee('desde=2026-11-15&amp;hasta=2026-11-15', false);
     }
 

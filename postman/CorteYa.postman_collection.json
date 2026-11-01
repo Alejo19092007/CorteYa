@@ -793,7 +793,7 @@
                 "turnos"
               ]
             },
-            "description": "Crea un turno pendiente de origen whatsapp. hora_fin y precio_total NO se envían: los calcula el sistema (R2). Si el cliente es nuevo se registra con el nombre.",
+            "description": "Crea un turno pendiente de origen telegram (el canal por defecto del bot; se puede indicar otro con el campo origen). hora_fin y precio_total NO se envían: los calcula el sistema (R2). Si el cliente es nuevo se registra con el nombre.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"telefono\": \"{{telefono}}\",\n  \"nombre\": \"Cliente de Postman\",\n  \"barbero_id\": {{barbero_id}},\n  \"fecha\": \"{{fecha}}\",\n  \"hora_inicio\": \"{{hora}}\",\n  \"servicios\": [\n    {{servicio_id}}\n  ]\n}",
@@ -812,7 +812,7 @@
                 "exec": [
                   "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
                   "const turno = pm.response.json().data;",
-                  "pm.test(\"Nace pendiente y de origen whatsapp\", () => { pm.expect(turno.estado).to.eql(\"pendiente\"); pm.expect(turno.origen).to.eql(\"whatsapp\"); });",
+                  "pm.test(\"Nace pendiente y de origen telegram\", () => { pm.expect(turno.estado).to.eql(\"pendiente\"); pm.expect(turno.origen).to.eql(\"telegram\"); });",
                   "pm.test(\"R2: calcula hora_fin y precio_total\", () => { pm.expect(turno.hora_fin).to.be.a(\"string\"); pm.expect(turno.precio_total).to.be.above(0); });",
                   "pm.collectionVariables.set(\"turno_id\", turno.id);"
                 ]
