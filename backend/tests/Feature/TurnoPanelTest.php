@@ -95,6 +95,22 @@ class TurnoPanelTest extends TestCase
             ->assertSee('Confirmado');
     }
 
+    public function test_el_listado_indica_si_el_turno_vino_del_panel_de_telegram_o_de_whatsapp(): void
+    {
+        $this->turno('2026-11-03 09:00', origen: Turno::ORIGEN_PANEL);
+        $this->turno('2026-11-03 11:00', origen: Turno::ORIGEN_TELEGRAM);
+        $this->turno('2026-11-03 13:00', origen: Turno::ORIGEN_WHATSAPP);
+
+        $this->actingAs($this->admin)->get(route('turnos.index'))
+            ->assertOk()
+            ->assertSee('bi-telegram', false)
+            ->assertSee('Telegram')
+            ->assertSee('bi-whatsapp', false)
+            ->assertSee('WhatsApp')
+            ->assertSee('bi-display', false)
+            ->assertSee('Panel');
+    }
+
     public function test_busca_por_nombre_o_por_telefono_del_cliente(): void
     {
         $ana = Cliente::factory()->create(['nombre' => 'Ana Ruiz', 'telefono' => '573001112222']);
@@ -221,7 +237,7 @@ class TurnoPanelTest extends TestCase
     public function test_no_acepta_hora_fin_ni_precio_enviados_a_mano(): void
     {
         $this->actingAs($this->admin)->post(route('turnos.store'), $this->datosNuevoTurno([
-            'hora_fin' => '23:00', 'precio_total' => 1, 'estado' => 'atendido', 'origen' => 'whatsapp',
+            'hora_fin' => '23:00', 'precio_total' => 1, 'estado' => 'atendido', 'origen' => 'telegram',
         ]));
 
         $turno = Turno::firstOrFail();
@@ -351,7 +367,7 @@ class TurnoPanelTest extends TestCase
 
     public function test_el_admin_confirma_un_turno_pendiente(): void
     {
-        $pendiente = $this->turno('2026-11-03 10:00', Turno::PENDIENTE, origen: Turno::ORIGEN_WHATSAPP);
+        $pendiente = $this->turno('2026-11-03 10:00', Turno::PENDIENTE, origen: Turno::ORIGEN_TELEGRAM);
 
         $this->actingAs($this->admin)->patch(route('turnos.estado', $pendiente), ['estado' => 'confirmado'])
             ->assertSessionHas('exito', 'Turno confirmado.');
@@ -431,7 +447,7 @@ class TurnoPanelTest extends TestCase
         $this->actingAs($this->barbero->user);
 
         // Pendiente → solo "Confirmar"
-        $pendiente = $this->turno('2026-11-02 13:00', Turno::PENDIENTE, origen: Turno::ORIGEN_WHATSAPP);
+        $pendiente = $this->turno('2026-11-02 13:00', Turno::PENDIENTE, origen: Turno::ORIGEN_TELEGRAM);
         $this->get(route('agenda'))
             ->assertSee('value="confirmado"', false)
             ->assertDontSee('value="atendido"', false)

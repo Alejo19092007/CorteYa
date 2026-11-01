@@ -14,7 +14,7 @@ use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /**
- * Pruebas de la API de turnos y de la disponibilidad: lo que consume el bot de WhatsApp.
+ * Pruebas de la API de turnos y de la disponibilidad: lo que consume el bot de Telegram.
  * Reloj congelado en lunes 2 de noviembre de 2026, 10:00.
  */
 class ApiTurnoTest extends TestCase
@@ -67,7 +67,7 @@ class ApiTurnoTest extends TestCase
         return Turno::factory()
             ->para($this->barbero, $cliente ?? Cliente::factory()->create(), Carbon::parse($inicio), collect([$this->corte]))
             ->estado($estado)
-            ->origen(Turno::ORIGEN_WHATSAPP)
+            ->origen(Turno::ORIGEN_TELEGRAM)
             ->create();
     }
 
@@ -90,7 +90,7 @@ class ApiTurnoTest extends TestCase
         $this->postJson('/api/turnos', $this->datos(['servicios' => [$this->corte->id, $this->barba->id]]))
             ->assertCreated()
             ->assertJsonPath('data.estado', 'pendiente')
-            ->assertJsonPath('data.origen', 'whatsapp')
+            ->assertJsonPath('data.origen', 'telegram')
             ->assertJsonPath('data.fecha', '2026-11-03')
             ->assertJsonPath('data.hora_inicio', '10:00')
             ->assertJsonPath('data.hora_fin', '11:15')          // R2: 45 + 30 min
@@ -100,7 +100,41 @@ class ApiTurnoTest extends TestCase
             ->assertJsonPath('data.barbero.id', $this->barbero->id)
             ->assertJsonCount(2, 'data.servicios');
 
-        $this->assertDatabaseHas('turnos', ['estado' => 'pendiente', 'origen' => 'whatsapp', 'precio_total' => 40000]);
+        $this->assertDatabaseHas('turnos', ['estado' => 'pendiente', 'origen' => 'telegram', 'precio_total' => 40000]);
+    }
+
+    public function test_el_bot_puede_indicar_el_canal_de_origen(): void
+    {
+        $this->postJson('/api/turnos', $this->datos(['origen' => 'whatsapp']))
+            ->assertCreated()
+            ->assertJsonPath('data.origen', 'whatsapp')
+            ->assertJsonPath('data.estado', 'pendiente');
+
+        $this->postJson('/api/turnos', $this->datos(['origen' => 'telegram', 'hora_inicio' => '12:00', 'telefono' => '573002223344']))
+            ->assertCreated()
+            ->assertJsonPath('data.origen', 'telegram');
+    }
+
+    public function test_un_origen_que_no_es_un_canal_del_bot_responde_422(): void
+    {
+        // "panel" lo reserva el personal: por la API no se puede hacer pasar un turno como creado en el panel
+        foreach (['panel', 'instagram'] as $origen) {
+            $this->postJson('/api/turnos', $this->datos(['origen' => $origen]))
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(['origen']);
+        }
+
+        $this->assertSame(0, Turno::count());
+    }
+
+    public function test_reprogramar_no_cambia_el_canal_de_origen(): void
+    {
+        $turno = $this->turno('2026-11-03 10:00', Turno::PENDIENTE);   // origen: telegram
+
+        $this->putJson("/api/turnos/{$turno->id}", [
+            'barbero_id' => $this->barbero->id, 'fecha' => '2026-11-04', 'hora_inicio' => '15:00',
+            'servicios' => [$this->corte->id], 'origen' => 'whatsapp',
+        ])->assertOk()->assertJsonPath('data.origen', 'telegram');
     }
 
     public function test_el_precio_y_la_duracion_quedan_congelados_en_el_turno(): void
