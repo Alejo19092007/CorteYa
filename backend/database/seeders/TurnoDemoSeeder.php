@@ -28,8 +28,8 @@ class TurnoDemoSeeder extends Seeder
 
         $demo = [
             ['horas' => -2, 'telefono' => '573001110001', 'barbero' => 0, 'servicio' => 'Corte clásico', 'estado' => Turno::CONFIRMADO, 'origen' => Turno::ORIGEN_PANEL],
-            ['horas' => -1, 'telefono' => '573001110002', 'barbero' => 1, 'servicio' => 'Barba', 'estado' => Turno::CONFIRMADO, 'origen' => Turno::ORIGEN_WHATSAPP],
-            ['horas' => 1, 'telefono' => '573001110003', 'barbero' => 2, 'servicio' => 'Corte clásico', 'estado' => Turno::PENDIENTE, 'origen' => Turno::ORIGEN_WHATSAPP],
+            ['horas' => -1, 'telefono' => '573001110002', 'barbero' => 1, 'servicio' => 'Barba', 'estado' => Turno::CONFIRMADO, 'origen' => Turno::ORIGEN_TELEGRAM],
+            ['horas' => 1, 'telefono' => '573001110003', 'barbero' => 2, 'servicio' => 'Corte clásico', 'estado' => Turno::PENDIENTE, 'origen' => Turno::ORIGEN_TELEGRAM],
             ['horas' => 3, 'telefono' => '573001110004', 'barbero' => 0, 'servicio' => 'Corte clásico', 'estado' => Turno::CONFIRMADO, 'origen' => Turno::ORIGEN_PANEL],
         ];
 

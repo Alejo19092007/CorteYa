@@ -10,7 +10,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
         <div>
             <h1 class="h2 mb-1"><i class="bi bi-scissors"></i> Servicios</h1>
-            <p class="text-secondary mb-0">Los servicios y precios que ofrece la barbería (también los ve el bot de WhatsApp).</p>
+            <p class="text-secondary mb-0">Los servicios y precios que ofrece la barbería (también los ve el bot de Telegram).</p>
         </div>
         <a href="{{ route('servicios.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nuevo servicio</a>
     </div>

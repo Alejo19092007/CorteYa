@@ -19,7 +19,7 @@ class ApiLoginRequest extends FormRequest
         return [
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
-            // Nombre del token (p. ej. "bot-whatsapp"): un nuevo login con el mismo nombre reemplaza al anterior
+            // Nombre del token (p. ej. "bot-telegram"): un nuevo login con el mismo nombre reemplaza al anterior
             'device_name' => ['nullable', 'string', 'max:60'],
         ];
     }

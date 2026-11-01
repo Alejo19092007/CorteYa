@@ -6,7 +6,7 @@ use App\Models\Cliente;
 use Illuminate\Support\Collection;
 
 /**
- * Consultas sobre clientes. El bot identifica al cliente por su número de WhatsApp.
+ * Consultas sobre clientes. El bot identifica al cliente por su número de celular.
  */
 class ClienteRepository
 {
@@ -15,7 +15,7 @@ class ClienteRepository
         return Cliente::where('telefono', $telefono)->first();
     }
 
-    /** Cliente del número dado; si es la primera vez que escribe, se registra con el nombre que trae WhatsApp. */
+    /** Cliente del número dado; si es la primera vez que escribe, se registra con el nombre que trae el chat. */
     public function buscarOCrear(string $telefono, string $nombre): Cliente
     {
         return Cliente::firstOrCreate(['telefono' => $telefono], ['nombre' => $nombre]);
