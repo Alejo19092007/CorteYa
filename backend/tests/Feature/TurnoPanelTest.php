@@ -327,12 +327,165 @@ class TurnoPanelTest extends TestCase
         $this->assertSame('panel', $turno->origen);
     }
 
+    // ------------------------------------------------ crear el turno con un cliente NUEVO
+
+    /** Datos de un turno cuyo cliente no existe todavía: se manda el nombre en vez de un cliente_id. */
+    private function datosConClienteNuevo(array $cambios = []): array
+    {
+        // Se arma aparte (sin datosNuevoTurno) porque este crea un cliente de relleno en la base
+        return array_merge([
+            'cliente_nombre' => 'Pedro de Mostrador',
+            'barbero_id' => $this->barbero->id,
+            'fecha' => '2026-11-03',
+            'hora_inicio' => '10:00',
+            'servicios' => [$this->corte->id],
+        ], $cambios);
+    }
+
+    public function test_se_puede_crear_el_turno_con_solo_el_nombre_de_un_cliente_nuevo(): void
+    {
+        $this->actingAs($this->admin)->post(route('turnos.store'), $this->datosConClienteNuevo())
+            ->assertRedirect(route('turnos.index'))
+            ->assertSessionHas('exito');
+
+        $cliente = Cliente::where('nombre', 'Pedro de Mostrador')->firstOrFail();
+        $this->assertNull($cliente->telefono);   // el teléfono es opcional
+
+        $turno = Turno::firstOrFail();
+        $this->assertSame($cliente->id, $turno->cliente_id);
+        $this->assertSame(Turno::CONFIRMADO, $turno->estado);       // decisión 2: lo del panel nace confirmado
+        $this->assertSame(Turno::ORIGEN_PANEL, $turno->origen);
+        $this->assertEquals(25000, $turno->precio_total);            // R2 sigue aplicando
+    }
+
+    public function test_el_telefono_del_cliente_nuevo_se_guarda_con_el_57(): void
+    {
+        $this->actingAs($this->admin)->post(route('turnos.store'), $this->datosConClienteNuevo(['cliente_telefono' => '300 123-4567']))
+            ->assertRedirect(route('turnos.index'));
+
+        $this->assertDatabaseHas('clientes', ['nombre' => 'Pedro de Mostrador', 'telefono' => '573001234567']);
+    }
+
+    public function test_varios_clientes_sin_telefono_pueden_convivir(): void
+    {
+        $this->actingAs($this->admin);
+        $this->post(route('turnos.store'), $this->datosConClienteNuevo(['cliente_nombre' => 'Ana', 'hora_inicio' => '10:00']))->assertRedirect();
+        $this->post(route('turnos.store'), $this->datosConClienteNuevo(['cliente_nombre' => 'Luis', 'hora_inicio' => '12:00']))->assertRedirect();
+
+        $this->assertSame(2, Cliente::whereNull('telefono')->count());   // la llave única no choca entre NULL
+    }
+
+    public function test_un_telefono_que_ya_existe_se_rechaza_y_no_se_crea_nada(): void
+    {
+        $existente = Cliente::factory()->create(['nombre' => 'Laura Martínez', 'telefono' => '573001234567']);
+
+        $this->actingAs($this->admin)->from(route('turnos.create'))
+            ->post(route('turnos.store'), $this->datosConClienteNuevo(['cliente_telefono' => '3001234567']))
+            ->assertRedirect(route('turnos.create'))
+            ->assertSessionHas('error', 'Ya existe un cliente con ese teléfono: Laura Martínez. Búscalo en la lista en vez de crearlo de nuevo.');
+
+        $this->assertSame(1, Cliente::count());
+        $this->assertSame(0, Turno::count());
+        $this->assertSame('Laura Martínez', $existente->fresh()->nombre);
+    }
+
+    public function test_si_el_turno_choca_con_otro_no_queda_el_cliente_nuevo_a_medias(): void
+    {
+        $this->turno('2026-11-03 10:00');   // el barbero ya tiene turno a esa hora (R1)
+
+        $this->actingAs($this->admin)->from(route('turnos.create'))
+            ->post(route('turnos.store'), $this->datosConClienteNuevo(['hora_inicio' => '10:00']))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('clientes', ['nombre' => 'Pedro de Mostrador']);   // se deshizo junto con el turno
+    }
+
+    public function test_sin_cliente_ni_nombre_se_pide_uno(): void
+    {
+        $datos = $this->datosNuevoTurno();
+        unset($datos['cliente_id']);
+
+        $this->actingAs($this->admin)->from(route('turnos.create'))->post(route('turnos.store'), $datos)
+            ->assertSessionHasErrors(['cliente_id' => 'Elige un cliente de la lista o escribe el nombre de uno nuevo.']);
+
+        $this->assertSame(0, Turno::count());
+    }
+
+    public function test_los_datos_del_cliente_nuevo_se_validan(): void
+    {
+        $this->actingAs($this->admin)->from(route('turnos.create'));
+
+        $this->post(route('turnos.store'), $this->datosConClienteNuevo(['cliente_telefono' => '12345']))
+            ->assertSessionHasErrors(['cliente_telefono' => 'El teléfono debe ser un celular de 10 dígitos (con o sin el indicativo 57).']);
+        $this->post(route('turnos.store'), $this->datosConClienteNuevo(['cliente_nombre' => 'A']))
+            ->assertSessionHasErrors('cliente_nombre');
+        $this->post(route('turnos.store'), $this->datosConClienteNuevo(['cliente_nombre' => str_repeat('x', 101)]))
+            ->assertSessionHasErrors('cliente_nombre');
+
+        $this->assertSame(0, Cliente::count());
+    }
+
+    public function test_si_se_elige_un_cliente_de_la_lista_se_ignora_lo_demas(): void
+    {
+        $elegido = Cliente::factory()->create();
+
+        $this->actingAs($this->admin)->post(route('turnos.store'), $this->datosNuevoTurno([
+            'cliente_id' => $elegido->id, 'cliente_nombre' => 'Otro Nombre', 'cliente_telefono' => '3009998877',
+        ]))->assertRedirect(route('turnos.index'));
+
+        $this->assertSame($elegido->id, Turno::firstOrFail()->cliente_id);
+        $this->assertDatabaseMissing('clientes', ['nombre' => 'Otro Nombre']);   // no se creó un cliente de más
+    }
+
+    public function test_al_editar_el_cliente_no_se_puede_cambiar_por_uno_nuevo(): void
+    {
+        $turno = $this->turno('2026-11-03 10:00');
+
+        $this->actingAs($this->admin)->from(route('turnos.edit', $turno))
+            ->put(route('turnos.update', $turno), [
+                'cliente_nombre' => 'Nuevo Cliente', 'barbero_id' => $this->barbero->id, 'fecha' => '2026-11-03',
+                'hora_inicio' => '10:00', 'servicios' => [$this->corte->id],
+            ])
+            ->assertSessionHasErrors('cliente_id');
+
+        $this->assertDatabaseMissing('clientes', ['nombre' => 'Nuevo Cliente']);
+    }
+
+    public function test_el_formulario_de_nuevo_turno_trae_el_recuadro_de_cliente_nuevo_y_el_de_editar_no(): void
+    {
+        $this->actingAs($this->admin)->get(route('turnos.create'))
+            ->assertOk()
+            ->assertSee('id="clienteNuevo"', false)
+            ->assertSee('name="cliente_nombre"', false)
+            ->assertSee('name="cliente_telefono"', false)
+            ->assertSee('si no existe, se crea');
+
+        $turno = $this->turno('2026-11-03 10:00');
+        $this->actingAs($this->admin)->get(route('turnos.edit', $turno))
+            ->assertOk()
+            ->assertDontSee('id="clienteNuevo"', false);
+    }
+
+    public function test_un_cliente_sin_telefono_se_muestra_bien_y_aparece_en_el_buscador(): void
+    {
+        $sinTelefono = Cliente::factory()->create(['nombre' => 'Pedro de Mostrador', 'telefono' => null]);
+        $turno = $this->turno('2026-11-03 10:00', cliente: $sinTelefono);
+
+        $this->actingAs($this->admin)->get(route('turnos.show', $turno))->assertOk()->assertSee('sin teléfono');
+        $this->actingAs($this->admin)->get(route('turnos.edit', $turno))->assertOk()->assertSee('Pedro de Mostrador');
+
+        $this->actingAs($this->admin)->getJson(route('clientes.buscar', ['q' => 'Mostrador']))
+            ->assertOk()
+            ->assertJsonPath('0.nombre', 'Pedro de Mostrador')
+            ->assertJsonPath('0.telefono', null);
+    }
+
     public function test_valida_los_campos_en_espanol(): void
     {
         $this->actingAs($this->admin)->from(route('turnos.create'))->post(route('turnos.store'), [])
             ->assertRedirect(route('turnos.create'))
             ->assertSessionHasErrors([
-                'cliente_id' => 'El campo cliente es obligatorio.',
+                'cliente_id' => 'Elige un cliente de la lista o escribe el nombre de uno nuevo.',
                 'barbero_id' => 'El campo barbero es obligatorio.',
                 'fecha' => 'El campo fecha es obligatorio.',
                 'hora_inicio' => 'El campo hora de inicio es obligatorio.',
