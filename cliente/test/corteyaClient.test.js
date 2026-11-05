@@ -23,7 +23,11 @@ function fetchFalso(...respuestas) {
   return { fetchFn, llamadas };
 }
 
-const nuevoCliente = (fetchFn) => crearClienteApi({ baseUrl: 'https://corteya.example/', email: 'bot@corteya.com', password: 'clave', fetchFn });
+// Las pruebas de siempre no usan reintentos (esperasReintentoMs: []); los reintentos tienen sus propias pruebas más abajo
+const nuevoCliente = (fetchFn) => crearClienteApi({ baseUrl: 'https://corteya.example/', email: 'bot@corteya.com', password: 'clave', fetchFn, esperasReintentoMs: [] });
+
+// Con dos reintentos sin pausa (para que la prueba sea instantánea)
+const clienteConReintentos = (fetchFn) => crearClienteApi({ baseUrl: 'https://corteya.example/', email: 'bot@corteya.com', password: 'clave', fetchFn, esperasReintentoMs: [0, 0] });
 
 test('inicia sesión una vez y manda el token Bearer en las llamadas siguientes', async () => {
   const { fetchFn, llamadas } = fetchFalso(loginOk('abc'), json(200, { data: [] }), json(200, { data: [] }));
@@ -226,4 +230,69 @@ test('después de un fallo de conexión el siguiente intento sí funciona', asyn
 
   await assert.rejects(() => api.servicios(), ApiNoDisponible);
   assert.deepEqual(await api.servicios(), ['ok']);
+});
+
+// ------------------------------------------------------------- arranque en frío de Render (reintentos)
+
+test('si el backend está despertando (sin conexión) el login se reintenta y la llamada sale bien', async () => {
+  const { fetchFn, llamadas } = fetchFalso(new TypeError('fetch failed'), new TypeError('fetch failed'), loginOk(), json(200, { data: ['ok'] }));
+
+  assert.deepEqual(await clienteConReintentos(fetchFn).servicios(), ['ok']);
+  assert.equal(llamadas.filter((l) => l.url.pathname === '/api/login').length, 3);   // 2 fallidos + 1 bueno
+});
+
+test('un 503 del proxy de Render mientras despierta se reintenta en las lecturas', async () => {
+  const { fetchFn, llamadas } = fetchFalso(loginOk(), json(503, {}), json(502, {}), json(200, { data: [1, 2] }));
+
+  assert.deepEqual(await clienteConReintentos(fetchFn).servicios(), [1, 2]);
+  assert.equal(llamadas.length, 4);
+});
+
+test('un tiempo de espera agotado también se reintenta', async () => {
+  const { fetchFn } = fetchFalso(new DOMException('timeout', 'TimeoutError'), loginOk(), json(200, { data: ['ok'] }));
+
+  assert.deepEqual(await clienteConReintentos(fetchFn).servicios(), ['ok']);
+});
+
+test('si tras los reintentos sigue sin responder, falla con ApiNoDisponible (3 intentos en total)', async () => {
+  const { fetchFn, llamadas } = fetchFalso(new TypeError('x'), new TypeError('x'), new TypeError('x'));
+
+  await assert.rejects(() => clienteConReintentos(fetchFn).servicios(), ApiNoDisponible);
+  assert.equal(llamadas.length, 3);
+});
+
+test('las escrituras NO se repiten solas: un fallo al reservar se informa de inmediato', async () => {
+  const { fetchFn, llamadas } = fetchFalso(loginOk(), json(503, {}), json(201, { data: { id: 1 } }));
+  const datos = { telefono: '573001234567', nombre: 'A', barberoId: 1, fecha: '2026-11-03', horaInicio: '10:00', servicioIds: [1] };
+
+  await assert.rejects(() => clienteConReintentos(fetchFn).crearTurno(datos), ApiNoDisponible);
+  assert.equal(llamadas.filter((l) => l.metodo === 'POST' && l.url.pathname === '/api/turnos').length, 1);   // un solo intento
+
+  const cancelar = fetchFalso(loginOk(), json(503, {}), new Response(null, { status: 204 }));
+  await assert.rejects(() => clienteConReintentos(cancelar.fetchFn).cancelarTurno(5), ApiNoDisponible);
+  assert.equal(cancelar.llamadas.filter((l) => l.metodo === 'DELETE').length, 1);
+});
+
+test('los reintentos no esconden las respuestas definitivas: 401, 404 y 422 se informan sin repetir', async () => {
+  const rechazo = fetchFalso(loginOk(), json(422, { message: 'No' }));
+  await assert.rejects(() => clienteConReintentos(rechazo.fetchFn).turnos('573001234567'), ApiRechazo);
+  assert.equal(rechazo.llamadas.length, 2);   // login + 1 llamada, sin repeticiones
+
+  const noExiste = fetchFalso(loginOk(), json(404, {}));
+  await assert.rejects(() => clienteConReintentos(noExiste.fetchFn).turnos('573001234567'), ApiNoEncontrado);
+  assert.equal(noExiste.llamadas.length, 2);
+
+  const credenciales = fetchFalso(json(401, { message: 'Credenciales incorrectas.' }));
+  await assert.rejects(() => clienteConReintentos(credenciales.fetchFn).servicios(), ApiAuthError);
+  assert.equal(credenciales.llamadas.length, 1);   // un login mal NO se reintenta: no tiene sentido repetirlo
+});
+
+test('esperar entre reintentos usa las pausas configuradas', async () => {
+  const { fetchFn } = fetchFalso(new TypeError('x'), loginOk(), json(200, { data: [] }));
+  const api = crearClienteApi({ baseUrl: 'https://corteya.example', email: 'a@b.c', password: 'x', fetchFn, esperasReintentoMs: [60] });
+
+  const inicio = Date.now();
+  await api.servicios();
+
+  assert.ok(Date.now() - inicio >= 50, 'debió esperar la pausa antes de reintentar');
 });
