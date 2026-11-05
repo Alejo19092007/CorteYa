@@ -95,6 +95,75 @@ class TurnoPanelTest extends TestCase
             ->assertSee('Confirmado');
     }
 
+    // -------------------------------------------- orden del listado (hoy y próximos primero)
+
+    /** IDs del listado en el orden en que se muestran. */
+    private function idsDelListado(array $parametros = []): array
+    {
+        return $this->actingAs($this->admin)->get(route('turnos.index', $parametros))->assertOk()
+            ->viewData('turnos')->pluck('id')->all();
+    }
+
+    public function test_el_listado_pone_hoy_y_lo_proximo_primero_y_despues_los_pasados(): void
+    {
+        // Hoy es lunes 2 de noviembre. Se crean mezclados a propósito: el orden no puede depender del id
+        $g = $this->turno('2026-11-05 12:00');   // próximo, lejano
+        $a = $this->turno('2026-10-31 10:00');   // pasado, antiguo
+        $e = $this->turno('2026-11-02 17:00');   // hoy, tarde
+        $c = $this->turno('2026-11-01 15:00');   // ayer, tarde
+        $f = $this->turno('2026-11-03 09:00');   // mañana
+        $d = $this->turno('2026-11-02 08:00');   // hoy, temprano (su hora ya pasó, pero es de hoy)
+        $b = $this->turno('2026-11-01 10:00');   // ayer, temprano
+
+        $esperado = [
+            $d->id, $e->id,      // HOY: de la primera hora a la última
+            $f->id, $g->id,      // PRÓXIMOS: del día más cercano al más lejano
+            $c->id, $b->id,      // PASADOS: del más reciente al más antiguo, y dentro del día también
+            $a->id,
+        ];
+
+        $this->assertSame($esperado, $this->idsDelListado());
+    }
+
+    public function test_el_orden_se_mantiene_al_paginar(): void
+    {
+        $proximos = [$this->turno('2026-11-02 09:00')->id, $this->turno('2026-11-03 09:00')->id, $this->turno('2026-11-04 09:00')->id];
+
+        // 9 turnos pasados: del 1 de noviembre hacia atrás
+        $pasados = [];
+        for ($dia = 1; $dia <= 9; $dia++) {
+            $pasados[] = $this->turno(Carbon::parse('2026-11-01 10:00')->subDays($dia - 1)->format('Y-m-d H:i'))->id;
+        }
+
+        $pagina1 = $this->idsDelListado();
+        $pagina2 = $this->idsDelListado(['page' => 2]);
+
+        // 12 en total, 10 por página: arriba los 3 próximos y luego los 7 pasados más recientes
+        $this->assertSame([...$proximos, ...array_slice($pasados, 0, 7)], $pagina1);
+        // la página 2 sigue por donde quedó la 1: los 2 pasados más antiguos
+        $this->assertSame(array_slice($pasados, 7), $pagina2);
+    }
+
+    public function test_el_orden_se_conserva_al_filtrar(): void
+    {
+        $this->turno('2026-11-03 09:00', Turno::CANCELADO);
+        $proximo = $this->turno('2026-11-04 09:00');
+        $hoy = $this->turno('2026-11-02 11:00');
+        $pasado = $this->turno('2026-10-30 10:00');
+        $this->turno('2026-11-01 10:00', Turno::PENDIENTE);
+
+        $this->assertSame([$hoy->id, $proximo->id, $pasado->id], $this->idsDelListado(['estado' => Turno::CONFIRMADO]));
+    }
+
+    public function test_dos_turnos_a_la_misma_hora_siempre_salen_en_el_mismo_orden(): void
+    {
+        $primero = $this->turno('2026-11-03 10:00');
+        $segundo = $this->turno('2026-11-03 10:00');
+
+        $this->assertSame([$primero->id, $segundo->id], $this->idsDelListado());
+        $this->assertSame([$primero->id, $segundo->id], $this->idsDelListado());   // repetible
+    }
+
     public function test_el_listado_indica_si_el_turno_vino_del_panel_de_telegram_o_de_whatsapp(): void
     {
         $this->turno('2026-11-03 09:00', origen: Turno::ORIGEN_PANEL);
