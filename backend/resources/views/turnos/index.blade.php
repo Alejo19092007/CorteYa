@@ -75,15 +75,16 @@
                 <label for="hasta" class="form-label small mb-1">Hasta</label>
                 <input type="date" id="hasta" name="hasta" class="form-control" value="{{ $filtros['hasta'] ?? '' }}">
             </div>
-            <div class="col-12 d-flex justify-content-end gap-1">
-                <button type="submit" class="btn btn-primary flex-fill" title="Filtrar" aria-label="Filtrar">
-                    <i class="bi bi-funnel"></i>
-                </button>
+            {{-- Botones compactos y a la derecha (antes el de filtrar se estiraba por toda la fila) --}}
+            <div class="col-12 d-flex justify-content-end gap-2">
                 @if ($hayFiltros)
                     <a href="{{ route('turnos.index') }}" class="btn btn-outline-secondary" title="Limpiar filtros" aria-label="Limpiar filtros">
-                        <i class="bi bi-x-lg"></i>
+                        <i class="bi bi-x-lg"></i> Limpiar
                     </a>
                 @endif
+                <button type="submit" class="btn btn-primary px-4" title="Filtrar" aria-label="Filtrar">
+                    <i class="bi bi-funnel"></i> Filtrar
+                </button>
             </div>
         </div>
     </form>
