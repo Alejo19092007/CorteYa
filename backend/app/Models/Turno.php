@@ -26,6 +26,15 @@ class Turno extends Model
     /** Canales por los que el bot puede crear turnos (el panel no cuenta: lo crea el personal). */
     public const ORIGENES_DEL_BOT = [self::ORIGEN_TELEGRAM, self::ORIGEN_WHATSAPP];
 
+    /** Cómo pudo pagar el cliente (R6: el pago se registra a mano; el sistema no cobra en línea). */
+    public const METODOS_PAGO = [
+        'efectivo' => 'Efectivo',
+        'transferencia' => 'Transferencia',
+        'nequi' => 'Nequi',
+        'daviplata' => 'Daviplata',
+        'tarjeta' => 'Tarjeta',
+    ];
+
     protected $fillable = [
         'barbero_id',
         'cliente_id',
@@ -35,6 +44,8 @@ class Turno extends Model
         'precio_total',
         'estado',
         'origen',
+        'pagado_en',
+        'metodo_pago',
     ];
 
     protected function casts(): array
@@ -42,6 +53,7 @@ class Turno extends Model
         return [
             'fecha' => 'date',
             'precio_total' => 'decimal:2',
+            'pagado_en' => 'datetime',
         ];
     }
 
@@ -96,6 +108,24 @@ class Turno extends Model
     public function duracionMin(): int
     {
         return (int) $this->servicios->sum('pivot.duracion_min');
+    }
+
+    /** ¿El cliente ya pagó? (R6) */
+    public function estaPagado(): bool
+    {
+        return $this->pagado_en !== null;
+    }
+
+    /** Atendido y todavía sin pago registrado: dinero "por cobrar". */
+    public function estaPorCobrar(): bool
+    {
+        return $this->estado === self::ATENDIDO && ! $this->estaPagado();
+    }
+
+    /** "Efectivo", "Nequi"... o null si no ha pagado. */
+    public function metodoPagoLegible(): ?string
+    {
+        return $this->metodo_pago ? (self::METODOS_PAGO[$this->metodo_pago] ?? $this->metodo_pago) : null;
     }
 
     /** Solo los pendientes y confirmados se pueden editar o cancelar (R4). */
