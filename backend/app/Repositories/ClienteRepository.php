@@ -15,6 +15,12 @@ class ClienteRepository
         return Cliente::where('telefono', $telefono)->first();
     }
 
+    /** Registra un cliente (el teléfono es opcional: un cliente de mostrador puede tener solo nombre). */
+    public function crear(string $nombre, ?string $telefono = null): Cliente
+    {
+        return Cliente::create(['nombre' => $nombre, 'telefono' => $telefono]);
+    }
+
     /** Cliente del número dado; si es la primera vez que escribe, se registra con el nombre que trae el chat. */
     public function buscarOCrear(string $telefono, string $nombre): Cliente
     {
