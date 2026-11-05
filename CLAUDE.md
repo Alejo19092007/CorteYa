@@ -22,7 +22,7 @@ La entrevista al dueño (evidencia) y el nombre real de la barbería se harán m
 
 - **Obligatorio:** todo lo de la rúbrica + reglas R1, R2, R3 y R4.
 - **Opcional, al final si sobra tiempo:** R5 (fidelidad), "sus cortes del mes" del barbero, crear clientes desde el formulario de turno.
-- **Fuera de alcance:** comisiones, pagos en línea, inventario, varias sedes, recordatorios automáticos, "¿Olvidaste tu contraseña?".
+- **Fuera de alcance:** comisiones, pagos en línea (cobrar desde el sistema; el REGISTRO manual del pago sí está, ver R6), inventario, varias sedes, recordatorios automáticos, "¿Olvidaste tu contraseña?".
 
 ## Arquitectura (C4)
 
@@ -55,6 +55,7 @@ Los controladores NO llevan lógica de negocio. Si una regla falla, el Service l
 | R3 Cancelación | Solo hasta 2 horas antes del inicio (solo para el cliente, ver decisión 1) | 422 |
 | R4 Estados | pendiente → confirmado → atendido; pendiente/confirmado → cancelado; confirmado → no_asistio. No se sale de atendido ni cancelado | 422 |
 | R5 Fidelidad *(opcional)* | Cada 10 turnos atendidos, el siguiente sale con precio 0 | Automático al crear |
+| R6 Pago | El pago se registra a mano y es independiente del estado: solo se paga un turno `atendido` y una sola vez; el monto es el `precio_total` (no se digita). Un atendido sin pago está "por cobrar" | 422 |
 
 ### Decisiones tomadas
 
@@ -64,6 +65,7 @@ Los controladores NO llevan lógica de negocio. Si una regla falla, el Service l
 4. **"Atendido" y "No asistió"** solo se permiten cuando ya pasó la `hora_inicio` del turno; si no, 422 "Aún no ha llegado la hora del turno".
 5. **Botones en "Mi agenda" según estado:** `pendiente` → Confirmar; `confirmado` → Atendido / No asistió (solo si ya pasó la hora); `atendido`, `cancelado` y `no_asistio` → sin botones.
 6. **Nuevo turno:** el cliente se busca por nombre o teléfono (teléfono único). Crear el cliente desde el formulario es opcional (prioridad baja).
+7. **Pago (R6):** `turnos.pagado_en` (null = por cobrar) y `turnos.metodo_pago` (efectivo, transferencia, nequi, daviplata, tarjeta). Lo registran el admin (cualquier turno) y el barbero (solo los suyos); solo el admin puede anular un pago (corrección). Los **ingresos del dashboard son lo cobrado** (pagos del mes, por fecha de pago) y se muestra aparte lo **por cobrar** (atendidos sin pago, de cualquier fecha). La migración dejó los atendidos que ya existían como pagados en efectivo.
 
 ## Modelo de datos
 
@@ -72,7 +74,7 @@ Los controladores NO llevan lógica de negocio. Si una regla falla, el Service l
 - `horarios`: id, barbero_id (FK, **1:N**), dia_semana (1–7), hora_inicio, hora_fin
 - `clientes`: id, nombre, telefono (único, con 57), turnos_atendidos
 - `servicios`: id, nombre, duracion_min, precio, activo
-- `turnos`: id, barbero_id (FK), cliente_id (FK), fecha, hora_inicio, hora_fin, precio_total, estado (enum), origen (panel | telegram | whatsapp)
+- `turnos`: id, barbero_id (FK), cliente_id (FK), fecha, hora_inicio, hora_fin, precio_total, estado (enum), origen (panel | telegram | whatsapp), pagado_en (nullable), metodo_pago (nullable)
 - `turno_servicio` (pivote **N:M** turnos–servicios): turno_id, servicio_id, precio, duracion_min (guardan el valor al momento de reservar)
 
 ## API REST
@@ -96,8 +98,8 @@ Decisiones de la API (v0.3), además de las del README: solo las cuentas `admin`
 
 ## Funciones por usuario
 
-- **Dueño (admin):** barberos, servicios y precios, horarios, agenda de todos, clientes y fidelidad, dashboard de ingresos (gráfico).
-- **Barbero:** su agenda del día, confirmar / marcar atendido / no asistió (solo sus turnos), sus cortes del mes (opcional). No ve a otros barberos ni reportes.
+- **Dueño (admin):** barberos, servicios y precios, horarios, agenda de todos, clientes y fidelidad, dashboard de ingresos (gráfico) y registrar/anular pagos.
+- **Barbero:** su agenda del día, confirmar / marcar atendido / no asistió y cobrar (registrar el pago) (solo sus turnos), sus cortes del mes (opcional). No ve a otros barberos ni reportes.
 - **Cliente (Telegram):** ver servicios, reservar, consultar y cancelar su turno, cortes que faltan para el gratis (R5, opcional).
 - Fuera de alcance: ver "Alcance y prioridades".
 
