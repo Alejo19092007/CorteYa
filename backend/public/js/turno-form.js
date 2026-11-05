@@ -110,39 +110,89 @@ document.addEventListener('DOMContentLoaded', function () {
     hora.addEventListener('change', actualizarResumen);
 
     // ---- Buscador de clientes ---------------------------------------------
+    // Se busca por nombre o teléfono. Si el cliente no existe, basta con dejar escrito el nombre (y, si se
+    // quiere, el teléfono): al guardar el turno el servidor lo registra como cliente nuevo.
     var campoCliente = form.querySelector('#clienteBuscar');
     var idCliente = form.querySelector('#cliente_id');
     var lista = form.querySelector('#clienteResultados');
+    var panelNuevo = form.querySelector('#clienteNuevo');          // no existe al EDITAR un turno
+    var nombreNuevo = form.querySelector('#cliente_nombre');
+    var telefonoNuevo = form.querySelector('#cliente_telefono');
     var espera = null;
 
-    function mostrarClientes(clientes) {
-        lista.innerHTML = '';
+    function pareceTelefono(texto) {
+        return /^[\d\s+()\-]{7,}$/.test(texto);
+    }
 
-        if (clientes.length === 0) {
-            var vacio = document.createElement('div');
-            vacio.className = 'list-group-item text-secondary';
-            vacio.textContent = 'Sin resultados';
-            lista.appendChild(vacio);
+    // Muestra u oculta el recuadro de "Cliente nuevo". Oculto = desactivado: sus campos no se envían.
+    // rellenar = true: copia lo que se escribió en el buscador (nombre, o teléfono si parece un número).
+    function actualizarClienteNuevo(rellenar) {
+        if (!panelNuevo) {
             return;
         }
 
+        var texto = campoCliente.value.trim();
+        var esNuevo = !idCliente.value && texto.length >= 2;
+
+        panelNuevo.hidden = !esNuevo;
+        nombreNuevo.disabled = !esNuevo;
+        telefonoNuevo.disabled = !esNuevo;
+
+        if (esNuevo && rellenar) {
+            if (pareceTelefono(texto)) {
+                telefonoNuevo.value = texto;
+                nombreNuevo.value = '';
+            } else {
+                nombreNuevo.value = texto;
+            }
+        }
+    }
+
+    function mostrarClientes(clientes, texto) {
+        lista.innerHTML = '';
+
         clientes.forEach(function (c) {
+            var etiqueta = c.nombre + (c.telefono ? ' · ' + c.telefono : ' · sin teléfono');
             var boton = document.createElement('button');
             boton.type = 'button';
             boton.className = 'list-group-item list-group-item-action';
-            boton.textContent = c.nombre + ' · ' + c.telefono; // textContent: nunca se interpreta como HTML
+            boton.textContent = etiqueta; // textContent: nunca se interpreta como HTML
             boton.addEventListener('click', function () {
                 idCliente.value = c.id;
-                campoCliente.value = c.nombre + ' · ' + c.telefono;
+                campoCliente.value = etiqueta;
                 lista.innerHTML = '';
+                actualizarClienteNuevo(false);
             });
             lista.appendChild(boton);
         });
+
+        if (!panelNuevo) {
+            if (clientes.length === 0) {
+                var vacio = document.createElement('div');
+                vacio.className = 'list-group-item text-secondary';
+                vacio.textContent = 'Sin resultados';
+                lista.appendChild(vacio);
+            }
+            return;
+        }
+
+        // Al crear un turno siempre se ofrece registrar al cliente como nuevo
+        var crear = document.createElement('button');
+        crear.type = 'button';
+        crear.className = 'list-group-item list-group-item-action text-primary';
+        crear.textContent = (clientes.length === 0 ? 'Sin resultados. ' : '') + '+ Registrar «' + texto + '» como cliente nuevo';
+        crear.addEventListener('click', function () {
+            lista.innerHTML = '';
+            actualizarClienteNuevo(true);
+            (pareceTelefono(texto) ? nombreNuevo : telefonoNuevo).focus();
+        });
+        lista.appendChild(crear);
     }
 
     campoCliente.addEventListener('input', function () {
-        idCliente.value = ''; // si cambia el texto, hay que volver a elegir un cliente de la lista
+        idCliente.value = ''; // si cambia el texto, hay que volver a elegir un cliente de la lista (o dejarlo como nuevo)
         clearTimeout(espera);
+        actualizarClienteNuevo(true);
 
         var texto = campoCliente.value.trim();
         if (texto.length < 2) {
@@ -156,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 credentials: 'same-origin'
             })
                 .then(function (r) { return r.json(); })
-                .then(mostrarClientes)
+                .then(function (clientes) { mostrarClientes(clientes, texto); })
                 .catch(function () { lista.innerHTML = ''; });
         }, 250);
     });
@@ -166,6 +216,9 @@ document.addEventListener('DOMContentLoaded', function () {
             lista.innerHTML = '';
         }
     });
+
+    // Al volver tras un error de validación, el recuadro reaparece con lo que ya se había escrito
+    actualizarClienteNuevo(false);
 
     // Al abrir (editar, o volver tras un error de validación) se cargan las horas con lo que ya hay
     cargarHoras();

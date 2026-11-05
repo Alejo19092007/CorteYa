@@ -16,7 +16,7 @@
             <div class="cy-tarjeta p-3 p-lg-4 h-100">
                 <dl class="row mb-0">
                     <dt class="col-sm-4 text-secondary fw-normal">Cliente</dt>
-                    <dd class="col-sm-8">{{ $turno->cliente->nombre }} <span class="text-secondary">· {{ $turno->cliente->telefono }}</span></dd>
+                    <dd class="col-sm-8">{{ $turno->cliente->nombre }} <span class="text-secondary">· {{ $turno->cliente->telefono ?? 'sin teléfono' }}</span></dd>
 
                     <dt class="col-sm-4 text-secondary fw-normal">Barbero</dt>
                     <dd class="col-sm-8">{{ $turno->barbero->user->name }}</dd>
