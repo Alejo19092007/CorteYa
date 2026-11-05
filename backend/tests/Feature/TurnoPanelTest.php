@@ -111,6 +111,86 @@ class TurnoPanelTest extends TestCase
             ->assertSee('Panel');
     }
 
+    // -------------------------------------- admin: Atendido / No asistió desde el listado
+
+    public function test_el_admin_ve_atendido_y_no_asistio_en_un_confirmado_cuya_hora_ya_llego(): void
+    {
+        $this->turno('2026-11-02 08:00', Turno::CONFIRMADO);   // ahora son las 10:00: ya pasó
+
+        $this->actingAs($this->admin)->get(route('turnos.index'))
+            ->assertOk()
+            ->assertSee('Marcar turno como atendido')
+            ->assertSee('Marcar que el cliente no asistió')
+            ->assertSee('title="Marcar como atendido"', false)
+            ->assertDontSee('Disponible desde las');
+    }
+
+    public function test_antes_de_la_hora_los_botones_salen_deshabilitados_y_dicen_desde_cuando(): void
+    {
+        $futuro = $this->turno('2026-11-02 15:00', Turno::CONFIRMADO);
+
+        $respuesta = $this->actingAs($this->admin)->get(route('turnos.index'))->assertOk();
+
+        $respuesta->assertSee('Disponible desde las '.$futuro->horaInicioLegible());
+        // TODOS los botones de estado (se dibujan dos veces: tabla de escritorio y tarjetas del celular) van deshabilitados
+        preg_match_all('/<button[^>]*aria-label="Marcar (?:turno como atendido|que el cliente no asistió)"[^>]*>/s', $respuesta->getContent(), $botones);
+        $this->assertCount(4, $botones[0]);
+        foreach ($botones[0] as $boton) {
+            $this->assertStringContainsString('disabled', $boton);
+        }
+    }
+
+    public function test_los_botones_de_atendido_y_no_asistio_solo_aparecen_en_los_confirmados(): void
+    {
+        foreach ([Turno::PENDIENTE, Turno::ATENDIDO, Turno::CANCELADO, Turno::NO_ASISTIO] as $estado) {
+            $this->turno('2026-11-02 08:00', $estado);
+        }
+
+        $this->actingAs($this->admin)->get(route('turnos.index'))
+            ->assertOk()
+            ->assertDontSee('Marcar turno como atendido')
+            ->assertDontSee('Marcar que el cliente no asistió');
+    }
+
+    public function test_el_detalle_del_turno_tambien_ofrece_atendido_y_no_asistio(): void
+    {
+        $turno = $this->turno('2026-11-02 08:00', Turno::CONFIRMADO);
+
+        $this->actingAs($this->admin)->get(route('turnos.show', $turno))
+            ->assertOk()
+            ->assertSee('Marcar turno como atendido')
+            ->assertSee('Marcar que el cliente no asistió');
+    }
+
+    public function test_el_admin_recorre_todo_el_camino_hasta_el_pago_sin_cambiar_de_cuenta(): void
+    {
+        $turno = $this->turno('2026-11-02 08:00', Turno::PENDIENTE);
+        $this->actingAs($this->admin);
+
+        $this->patch(route('turnos.estado', $turno), ['estado' => 'confirmado'])->assertSessionHas('exito', 'Turno confirmado.');
+        $this->patch(route('turnos.estado', $turno), ['estado' => 'atendido'])->assertSessionHas('exito', 'Turno marcado como atendido.');
+
+        // Ya atendido: aparece el botón del pago y los de estado desaparecen
+        $this->get(route('turnos.index'))->assertSee('Registrar pago del turno')->assertDontSee('Marcar turno como atendido');
+
+        $this->patch(route('turnos.pago', $turno), ['metodo_pago' => 'nequi'])->assertSessionHas('exito');
+
+        $turno = $turno->fresh();
+        $this->assertSame(Turno::ATENDIDO, $turno->estado);
+        $this->assertSame('nequi', $turno->metodo_pago);
+    }
+
+    public function test_el_admin_no_puede_marcar_atendido_antes_de_la_hora(): void
+    {
+        $futuro = $this->turno('2026-11-02 15:00', Turno::CONFIRMADO);
+
+        $this->actingAs($this->admin)->from(route('turnos.index'))
+            ->patch(route('turnos.estado', $futuro), ['estado' => 'atendido'])
+            ->assertSessionHas('error', 'Aún no ha llegado la hora del turno');
+
+        $this->assertSame(Turno::CONFIRMADO, $futuro->fresh()->estado);
+    }
+
     public function test_busca_por_nombre_o_por_telefono_del_cliente(): void
     {
         $ana = Cliente::factory()->create(['nombre' => 'Ana Ruiz', 'telefono' => '573001112222']);

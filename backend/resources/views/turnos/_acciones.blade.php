@@ -2,6 +2,9 @@
     Acciones de un turno en el listado. Según R4:
       - Editar y Cancelar: solo pendiente o confirmado.
       - Confirmar: solo pendiente.
+      - Atendido / No asistió: solo confirmado, y únicamente cuando ya llegó la hora de inicio (R4 y decisión 4).
+        Antes de esa hora los botones salen deshabilitados y dicen desde cuándo se pueden usar.
+      - Registrar pago (R6): solo atendido y sin pago registrado.
     "Cancelar" cambia el estado (no borra), por eso lleva ícono de x y no de papelera.
 --}}
 <div class="d-inline-flex gap-1">
@@ -22,6 +25,30 @@
             <input type="hidden" name="estado" value="confirmado">
             <button type="submit" class="btn btn-sm btn-outline-success" title="Confirmar" aria-label="Confirmar turno">
                 <i class="bi bi-check-circle"></i>
+            </button>
+        </form>
+    @endif
+
+    @if ($turno->estado === \App\Models\Turno::CONFIRMADO)
+        @php $yaLlegoLaHora = now()->gte($turno->inicio()); @endphp
+        <form method="POST" action="{{ route('turnos.estado', $turno) }}" class="d-inline">
+            @csrf
+            @method('PATCH')
+            <input type="hidden" name="estado" value="atendido">
+            <button type="submit" class="btn btn-sm btn-outline-success" aria-label="Marcar turno como atendido"
+                    title="{{ $yaLlegoLaHora ? 'Marcar como atendido' : 'Disponible desde las '.$turno->horaInicioLegible() }}"
+                    @disabled(! $yaLlegoLaHora)>
+                <i class="bi bi-person-check"></i>
+            </button>
+        </form>
+        <form method="POST" action="{{ route('turnos.estado', $turno) }}" class="d-inline">
+            @csrf
+            @method('PATCH')
+            <input type="hidden" name="estado" value="no_asistio">
+            <button type="submit" class="btn btn-sm btn-no-asistio" aria-label="Marcar que el cliente no asistió"
+                    title="{{ $yaLlegoLaHora ? 'Marcar como no asistió' : 'Disponible desde las '.$turno->horaInicioLegible() }}"
+                    @disabled(! $yaLlegoLaHora)>
+                <i class="bi bi-person-x"></i>
             </button>
         </form>
     @endif
