@@ -26,6 +26,17 @@
         </form>
     @endif
 
+    {{-- R6: el pago se registra solo en un turno atendido que todavía no está pagado --}}
+    @if ($turno->estaPorCobrar())
+        <button type="button" class="btn btn-sm btn-outline-success" title="Registrar pago" aria-label="Registrar pago del turno"
+                data-bs-toggle="modal" data-bs-target="#modalPago"
+                data-accion="{{ route('turnos.pago', $turno) }}"
+                data-resumen="{{ $turno->cliente->nombre }} · {{ $turno->fecha->format('d/m/Y') }} · {{ $turno->horaInicioLegible() }}"
+                data-total="${{ number_format($turno->precio_total, 0, ',', '.') }}">
+            <i class="bi bi-cash-coin"></i>
+        </button>
+    @endif
+
     @if ($turno->esEditable())
         <button type="button" class="btn btn-sm btn-outline-danger" title="Cancelar" aria-label="Cancelar turno"
                 data-bs-toggle="modal" data-bs-target="#modalCancelar"

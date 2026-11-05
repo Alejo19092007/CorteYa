@@ -53,14 +53,58 @@
         </div>
     </div>
 
+    {{-- R6 · Pago: solo tiene sentido en un turno atendido --}}
+    @if ($turno->estado === \App\Models\Turno::ATENDIDO)
+        <div class="cy-tarjeta p-3 p-lg-4 mt-3">
+            <h2 class="h5 mb-3"><i class="bi bi-cash-coin"></i> Pago</h2>
+
+            @if ($turno->estaPagado())
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <x-pago-turno :turno="$turno" class="fs-6" />
+                        <div class="text-secondary small mt-1">
+                            ${{ number_format($turno->precio_total, 0, ',', '.') }} recibidos el {{ $turno->pagado_en->format('d/m/Y') }} a las {{ $turno->pagado_en->format('h:i a') }}
+                        </div>
+                    </div>
+                    {{-- Corregir un pago anotado por error: solo el dueño --}}
+                    @can('anularPago', $turno)
+                        <form method="POST" action="{{ route('turnos.pago.anular', $turno) }}"
+                              onsubmit="return confirm('¿Anular el pago registrado? El turno volverá a quedar por cobrar.');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Anular pago</button>
+                        </form>
+                    @endcan
+                </div>
+            @else
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <x-pago-turno :turno="$turno" class="fs-6" />
+                        <div class="text-secondary small mt-1">Faltan por cobrar ${{ number_format($turno->precio_total, 0, ',', '.') }}.</div>
+                    </div>
+                    @can('registrarPago', $turno)
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPago"
+                                data-accion="{{ route('turnos.pago', $turno) }}"
+                                data-resumen="{{ $turno->cliente->nombre }} · {{ $turno->fecha->format('d/m/Y') }} · {{ $turno->horaInicioLegible() }}"
+                                data-total="${{ number_format($turno->precio_total, 0, ',', '.') }}">
+                            <i class="bi bi-cash-coin"></i> Registrar pago
+                        </button>
+                    @endcan
+                </div>
+            @endif
+        </div>
+    @endif
+
     <div class="d-flex flex-wrap justify-content-between gap-2 mt-3">
         <a href="{{ route('turnos.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al listado</a>
         @include('turnos._acciones', ['turno' => $turno])
     </div>
 
     @include('turnos._modal_cancelar')
+    @include('turnos._modal_pago')
 @endsection
 
 @push('scripts')
     <script src="{{ asset('js/turnos-cancelar.js') }}"></script>
+    <script src="{{ asset('js/turnos-pago.js') }}"></script>
 @endpush

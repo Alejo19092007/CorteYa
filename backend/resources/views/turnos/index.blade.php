@@ -12,6 +12,7 @@
         Turno::CANCELADO => 'Cancelado',
         Turno::NO_ASISTIO => 'No asistió',
     ];
+    $pagos = ['pagado' => 'Pagado', 'por_cobrar' => 'Por cobrar'];
     $hayFiltros = collect($filtros)->filter()->isNotEmpty();
 @endphp
 
@@ -29,7 +30,7 @@
     {{-- Búsqueda y filtros: se envían por GET, así la URL se puede copiar y la paginación los conserva --}}
     <form method="GET" action="{{ route('turnos.index') }}" class="cy-tarjeta p-3 mb-3">
         <div class="row g-2 align-items-end">
-            <div class="col-12 col-lg-3">
+            <div class="col-12 col-lg-2">
                 <label for="q" class="form-label small mb-1">Cliente</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
@@ -58,6 +59,15 @@
                 </select>
             </div>
             <div class="col-6 col-lg-2">
+                <label for="pago" class="form-label small mb-1">Pago</label>
+                <select id="pago" name="pago" class="form-select">
+                    <option value="">Todos</option>
+                    @foreach ($pagos as $valor => $etiqueta)
+                        <option value="{{ $valor }}" @selected(($filtros['pago'] ?? '') === $valor)>{{ $etiqueta }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-6 col-lg-2">
                 <label for="desde" class="form-label small mb-1">Desde</label>
                 <input type="date" id="desde" name="desde" class="form-control" value="{{ $filtros['desde'] ?? '' }}">
             </div>
@@ -65,7 +75,7 @@
                 <label for="hasta" class="form-label small mb-1">Hasta</label>
                 <input type="date" id="hasta" name="hasta" class="form-control" value="{{ $filtros['hasta'] ?? '' }}">
             </div>
-            <div class="col-12 col-lg-1 d-flex gap-1">
+            <div class="col-12 d-flex justify-content-end gap-1">
                 <button type="submit" class="btn btn-primary flex-fill" title="Filtrar" aria-label="Filtrar">
                     <i class="bi bi-funnel"></i>
                 </button>
@@ -110,7 +120,10 @@
                                 <td>{{ $turno->barbero->user->name }}</td>
                                 <td>{{ $turno->serviciosTexto() }}</td>
                                 <td class="text-end text-nowrap">${{ number_format($turno->precio_total, 0, ',', '.') }}</td>
-                                <td><x-estado-turno :estado="$turno->estado" /></td>
+                                <td>
+                                    <x-estado-turno :estado="$turno->estado" />
+                                    <x-pago-turno :turno="$turno" class="d-block mt-1" />
+                                </td>
                                 <td class="text-nowrap">@include('turnos._origen', ['origen' => $turno->origen])</td>
                                 <td class="text-end">@include('turnos._acciones', ['turno' => $turno])</td>
                             </tr>
@@ -129,7 +142,10 @@
                             <div class="fw-semibold">{{ $turno->fecha->format('d/m/Y') }} · {{ $turno->horaInicioLegible() }}</div>
                             <div>{{ $turno->cliente->nombre }}</div>
                         </div>
-                        <x-estado-turno :estado="$turno->estado" />
+                        <div class="text-end">
+                            <x-estado-turno :estado="$turno->estado" />
+                            <x-pago-turno :turno="$turno" class="d-block mt-1" />
+                        </div>
                     </div>
                     <div class="text-secondary small mt-1">
                         {{ $turno->serviciosTexto() }} · {{ $turno->duracionMin() }} min · ${{ number_format($turno->precio_total, 0, ',', '.') }}
@@ -148,8 +164,10 @@
     @endif
 
     @include('turnos._modal_cancelar')
+    @include('turnos._modal_pago')
 @endsection
 
 @push('scripts')
     <script src="{{ asset('js/turnos-cancelar.js') }}"></script>
+    <script src="{{ asset('js/turnos-pago.js') }}"></script>
 @endpush
