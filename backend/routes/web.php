@@ -46,6 +46,14 @@ Route::middleware('auth')->group(function () {
     Route::patch('/turnos/{turno}/estado', [TurnoController::class, 'cambiarEstado'])
         ->middleware('can:cambiarEstado,turno')
         ->name('turnos.estado');
+
+    // R6 · Pago del turno: lo registran el admin (cualquiera) y el barbero (los suyos); solo el admin lo anula.
+    Route::patch('/turnos/{turno}/pago', [TurnoController::class, 'registrarPago'])
+        ->middleware('can:registrarPago,turno')
+        ->name('turnos.pago');
+    Route::delete('/turnos/{turno}/pago', [TurnoController::class, 'anularPago'])
+        ->middleware('can:anularPago,turno')
+        ->name('turnos.pago.anular');
 });
 
 // Solo en desarrollo: para ver las páginas de error propias sin provocar el error de verdad.

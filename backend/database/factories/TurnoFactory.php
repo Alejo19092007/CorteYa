@@ -72,4 +72,16 @@ class TurnoFactory extends Factory
     {
         return $this->state(['origen' => $origen]);
     }
+
+    /**
+     * Turno con el pago registrado (R6). Por defecto se pagó al terminar el turno; $cuando permite
+     * simular un pago en otra fecha (p. ej. cobrado al día siguiente).
+     */
+    public function pagado(string $metodo = 'efectivo', ?Carbon $cuando = null): static
+    {
+        return $this->state(fn (array $atributos) => [
+            'pagado_en' => $cuando ?? Carbon::parse(Carbon::parse($atributos['fecha'])->toDateString().' '.$atributos['hora_fin']),
+            'metodo_pago' => $metodo,
+        ]);
+    }
 }

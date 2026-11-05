@@ -23,6 +23,10 @@ class TurnoResource extends JsonResource
             'precio_total' => (float) $this->precio_total,
             'estado' => $this->estado,
             'origen' => $this->origen,
+            // R6: null mientras el cliente no haya pagado (un turno atendido sin pago está "por cobrar")
+            'pagado' => $this->estaPagado(),
+            'metodo_pago' => $this->metodo_pago,
+            'pagado_en' => $this->pagado_en?->format('Y-m-d H:i'),
             'barbero' => [
                 'id' => $this->barbero->id,
                 'nombre' => $this->barbero->user->name,

@@ -68,11 +68,18 @@ class TurnoHistorialSeeder extends Seeder
 
             [$estado, $origen] = $pasado ? $this->estadoPasado() : $this->estadoFuturo();
 
-            Turno::factory()
+            $turno = Turno::factory()
                 ->para($barbero, $this->clientes->random(), $inicio->copy(), $servicios)
                 ->estado($estado)
-                ->origen($origen)
-                ->create();
+                ->origen($origen);
+
+            // R6: los atendidos se cobraron. Los de los últimos 2 días a veces siguen "por cobrar",
+            // para que el dashboard tenga una cifra pendiente que mostrar.
+            if ($estado === Turno::ATENDIDO && ! ($dia->gte(today()->subDays(2)) && random_int(1, 100) <= 40)) {
+                $turno = $turno->pagado($this->metodoDePagoAleatorio());
+            }
+
+            $turno->create();
 
             // Siguiente turno: justo después, o con 15–30 minutos de pausa
             $inicio = $fin->copy()->addMinutes([0, 15, 30][array_rand([0, 15, 30])]);
@@ -109,6 +116,20 @@ class TurnoHistorialSeeder extends Seeder
         return [$estado, $origen];
     }
 
+    /** Reparto parecido al de una barbería real: más efectivo y Nequi, algo de transferencia y poca tarjeta. */
+    private function metodoDePagoAleatorio(): string
+    {
+        $r = random_int(1, 100);
+
+        return match (true) {
+            $r <= 50 => 'efectivo',
+            $r <= 70 => 'nequi',
+            $r <= 85 => 'transferencia',
+            $r <= 95 => 'daviplata',
+            default => 'tarjeta',
+        };
+    }
+
     private function origenAleatorio(): string
     {
         return random_int(1, 100) <= 55 ? Turno::ORIGEN_TELEGRAM : Turno::ORIGEN_PANEL;
@@ -129,6 +150,7 @@ class TurnoHistorialSeeder extends Seeder
                 ->para($barbero, $fiel, today()->subDays($dias)->setTime(20, 0), $corte)
                 ->estado(Turno::ATENDIDO)
                 ->origen(Turno::ORIGEN_TELEGRAM)
+                ->pagado()
                 ->create();
         }
     }

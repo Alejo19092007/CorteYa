@@ -9,6 +9,7 @@
     // Los cancelados no cuentan como "turnos de hoy" (igual que en el dashboard del administrador)
     $deHoy = $turnos->where('estado', '!=', Turno::CANCELADO)->count();
     $atendidos = $turnos->where('estado', Turno::ATENDIDO)->count();
+    $porCobrar = $turnos->filter(fn ($t) => $t->estaPorCobrar())->count();
 @endphp
 
 @section('contenido')
@@ -29,6 +30,7 @@
     <div class="cy-tarjeta p-3 mb-3 d-flex gap-4">
         <div><span class="fs-3 fw-bold">{{ $deHoy }}</span> <span class="text-secondary">turnos hoy</span></div>
         <div><span class="fs-3 fw-bold text-success">{{ $atendidos }}</span> <span class="text-secondary">atendidos</span></div>
+        <div><span class="fs-3 fw-bold {{ $porCobrar > 0 ? 'text-warning-emphasis' : 'text-secondary' }}">{{ $porCobrar }}</span> <span class="text-secondary">por cobrar</span></div>
     </div>
 
     @if ($turnos->isEmpty())
@@ -61,8 +63,29 @@
                                     {{ $turno->serviciosTexto() }} · <i class="bi bi-clock"></i> {{ $turno->duracionMin() }} min
                                 </div>
                                 <div class="small mt-1">@include('turnos._origen', ['origen' => $turno->origen])</div>
+                                <x-pago-turno :turno="$turno" class="mt-1" />
                             </div>
                         </div>
+
+                        {{-- R6 · Cobrar un turno ya atendido: método de pago y botón, en un solo paso --}}
+                        @if ($turno->estaPorCobrar())
+                            <form method="POST" action="{{ route('turnos.pago', $turno) }}">
+                                @csrf
+                                @method('PATCH')
+                                <label for="pago-{{ $turno->id }}" class="form-label small mb-1">
+                                    Cobrar ${{ number_format($turno->precio_total, 0, ',', '.') }} · ¿cómo pagó?
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <select id="pago-{{ $turno->id }}" name="metodo_pago" class="form-select" required>
+                                        <option value="" selected disabled>Elige el método</option>
+                                        @foreach (Turno::METODOS_PAGO as $valor => $nombre)
+                                            <option value="{{ $valor }}">{{ $nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit" class="btn btn-success"><i class="bi bi-cash-coin"></i> Cobrar</button>
+                                </div>
+                            </form>
+                        @endif
 
                         {{-- Botones según el estado (R4 y decisión 5) --}}
                         @if ($turno->estado === Turno::PENDIENTE)
