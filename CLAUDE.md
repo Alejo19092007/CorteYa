@@ -21,7 +21,7 @@ La entrevista al dueño (evidencia) y el nombre real de la barbería se harán m
 ## Alcance y prioridades
 
 - **Obligatorio:** todo lo de la rúbrica + reglas R1, R2, R3 y R4.
-- **Opcional, al final si sobra tiempo:** R5 (fidelidad), "sus cortes del mes" del barbero, crear clientes desde el formulario de turno.
+- **Opcional, al final si sobra tiempo:** R5 (fidelidad), "sus cortes del mes" del barbero.
 - **Fuera de alcance:** comisiones, pagos en línea (cobrar desde el sistema; el REGISTRO manual del pago sí está, ver R6), inventario, varias sedes, recordatorios automáticos, "¿Olvidaste tu contraseña?".
 
 ## Arquitectura (C4)
@@ -64,7 +64,7 @@ Los controladores NO llevan lógica de negocio. Si una regla falla, el Service l
 3. **Confirmar pendientes:** el admin (cualquier turno, desde el listado) y el barbero (solo los suyos, botón "Confirmar" en "Mi agenda").
 4. **"Atendido" y "No asistió"** solo se permiten cuando ya pasó la `hora_inicio` del turno; si no, 422 "Aún no ha llegado la hora del turno".
 5. **Botones en "Mi agenda" según estado:** `pendiente` → Confirmar; `confirmado` → Atendido / No asistió (solo si ya pasó la hora); `atendido`, `cancelado` y `no_asistio` → sin botones.
-6. **Nuevo turno:** el cliente se busca por nombre o teléfono (teléfono único). Crear el cliente desde el formulario es opcional (prioridad baja).
+6. **Nuevo turno:** el cliente se busca por nombre o teléfono. Si no existe, se crea desde el mismo formulario con solo el nombre (el teléfono es opcional; si se da, se guarda con el 57 y no puede repetirse). El cliente nuevo se crea en la misma transacción del turno: si R1 lo rechaza, no queda ningún cliente a medias. Al editar un turno el cliente no se cambia por uno nuevo.
 7. **Pago (R6):** `turnos.pagado_en` (null = por cobrar) y `turnos.metodo_pago` (efectivo, transferencia, nequi, daviplata, tarjeta). Lo registran el admin (cualquier turno) y el barbero (solo los suyos); solo el admin puede anular un pago (corrección). Los **ingresos del dashboard son lo cobrado** (pagos del mes, por fecha de pago) y se muestra aparte lo **por cobrar** (atendidos sin pago, de cualquier fecha). La migración dejó los atendidos que ya existían como pagados en efectivo.
 
 ## Modelo de datos
@@ -72,7 +72,7 @@ Los controladores NO llevan lógica de negocio. Si una regla falla, el Service l
 - `users`: id, name, email (único), password, rol (admin | barbero)
 - `barberos`: id, user_id (FK único → users, **1:1**), telefono, activo
 - `horarios`: id, barbero_id (FK, **1:N**), dia_semana (1–7), hora_inicio, hora_fin
-- `clientes`: id, nombre, telefono (único, con 57), turnos_atendidos
+- `clientes`: id, nombre, telefono (único, con 57; opcional: un cliente de mostrador puede tener solo nombre), turnos_atendidos
 - `servicios`: id, nombre, duracion_min, precio, activo
 - `turnos`: id, barbero_id (FK), cliente_id (FK), fecha, hora_inicio, hora_fin, precio_total, estado (enum), origen (panel | telegram | whatsapp), pagado_en (nullable), metodo_pago (nullable)
 - `turno_servicio` (pivote **N:M** turnos–servicios): turno_id, servicio_id, precio, duracion_min (guardan el valor al momento de reservar)

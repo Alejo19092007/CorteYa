@@ -81,6 +81,44 @@ class TurnoService
     }
 
     /**
+     * Crea un turno desde el panel. El cliente puede venir de la lista (cliente_id) o ser NUEVO: basta con
+     * un nombre (cliente_nombre) y, si se quiere, un teléfono (cliente_telefono). Todo en una transacción:
+     * si R1 rechaza el turno, tampoco se crea el cliente.
+     *
+     * @param  array{cliente_id?: int|null, cliente_nombre?: string|null, cliente_telefono?: string|null, barbero_id: int, fecha: string, hora_inicio: string, servicios: array<int>}  $datos
+     */
+    public function crearDesdePanel(array $datos): Turno
+    {
+        return DB::transaction(function () use ($datos) {
+            if (blank($datos['cliente_id'] ?? null)) {
+                $datos['cliente_id'] = $this->registrarClienteNuevo($datos['cliente_nombre'] ?? '', $datos['cliente_telefono'] ?? null)->id;
+            }
+
+            return $this->crear($datos, Turno::ORIGEN_PANEL);
+        });
+    }
+
+    /** Registra un cliente nuevo. El teléfono, si viene, se guarda con el 57 y no puede pertenecer a otro cliente. */
+    private function registrarClienteNuevo(string $nombre, ?string $telefono): Cliente
+    {
+        $nombre = trim($nombre);
+        if ($nombre === '') {
+            throw new ReglaNegocioException('Escribe el nombre del cliente.');
+        }
+
+        $normalizado = filled($telefono) ? Cliente::normalizarTelefono($telefono) : null;
+        if (filled($telefono) && $normalizado === null) {
+            throw new ReglaNegocioException('El teléfono debe tener 10 dígitos (con o sin el indicativo 57).');
+        }
+
+        if ($normalizado !== null && ($existente = $this->clientes->buscarPorTelefono($normalizado))) {
+            throw new ReglaNegocioException("Ya existe un cliente con ese teléfono: {$existente->nombre}. Búscalo en la lista en vez de crearlo de nuevo.");
+        }
+
+        return $this->clientes->crear($nombre, $normalizado);
+    }
+
+    /**
      * Crea un turno pedido por el bot (Telegram por defecto): al cliente se le identifica por su
      * teléfono y, si es la primera vez que escribe, se registra con el nombre que trae.
      * Nace "pendiente" (decisión 2). Todo va en una transacción: si R1 rechaza el turno,

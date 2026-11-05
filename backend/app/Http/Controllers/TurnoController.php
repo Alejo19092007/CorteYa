@@ -47,7 +47,7 @@ class TurnoController extends Controller
 
     public function store(StoreTurnoRequest $request): RedirectResponse
     {
-        $turno = $this->turnos->crear($request->validated(), Turno::ORIGEN_PANEL);
+        $turno = $this->turnos->crearDesdePanel($request->validated());
 
         return redirect()->route('turnos.index')
             ->with('exito', "Turno creado para {$turno->cliente->nombre} el {$turno->fecha->format('d/m/Y')} a las {$turno->horaInicioLegible()}");   // la hora ya termina en punto ("p. m."): no se agrega otro

@@ -395,7 +395,8 @@ class PagoTest extends TestCase
     public function test_la_migracion_deja_pagados_los_atendidos_que_ya_existian(): void
     {
         // Se vuelve al esquema anterior, se crean turnos "como estaban antes" y se aplica la migración otra vez
-        $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+        // Solo se revierte la migración del pago (por su ruta); las demás no se tocan
+        $this->artisan('migrate:rollback', ['--path' => 'database/migrations/2026_11_05_100000_agrega_pago_a_turnos.php'])->assertSuccessful();
 
         $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('turnos', 'pagado_en'));
 

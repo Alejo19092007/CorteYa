@@ -7,7 +7,7 @@
 @php
     $t = $turno ?? null;
     $clienteId = old('cliente_id', $t?->cliente_id);
-    $clienteTexto = old('cliente_texto', $t ? $t->cliente->nombre.' · '.$t->cliente->telefono : '');
+    $clienteTexto = old('cliente_texto', $t ? $t->cliente->nombre.($t->cliente->telefono ? ' · '.$t->cliente->telefono : '') : '');
     $barberoId = old('barbero_id', $t?->barbero_id);
     $fecha = old('fecha', $t?->fecha->format('Y-m-d'));
     $horaActual = old('hora_inicio', $t ? substr($t->hora_inicio, 0, 5) : '');
@@ -38,17 +38,36 @@
         <div class="col-12 col-lg-8">
             <div class="cy-tarjeta p-3 p-lg-4">
                 <div class="row g-3">
-                    {{-- 1. Cliente: se busca por nombre o teléfono --}}
+                    {{-- 1. Cliente: se busca por nombre o teléfono; si no existe, se crea al guardar (solo al crear un turno) --}}
                     <div class="col-12 position-relative">
                         <label for="clienteBuscar" class="form-label fw-semibold">1. Cliente</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-person"></i></span>
                             <input type="text" id="clienteBuscar" name="cliente_texto" class="form-control"
-                                   placeholder="Escribe el nombre o el teléfono" autocomplete="off"
+                                   placeholder="{{ $t ? 'Escribe el nombre o el teléfono' : 'Escribe el nombre o el teléfono (si no existe, se crea)' }}" autocomplete="off"
                                    value="{{ $clienteTexto }}">
                         </div>
                         <input type="hidden" id="cliente_id" name="cliente_id" value="{{ $clienteId }}">
                         <div id="clienteResultados" class="list-group position-absolute w-100 shadow-sm" style="z-index: 5;"></div>
+
+                        @unless ($t)
+                            {{-- Aparece (lo controla turno-form.js) cuando se escribe un cliente que no se elige de la lista --}}
+                            <div id="clienteNuevo" class="border rounded-3 p-3 mt-2 bg-body-tertiary" hidden>
+                                <div class="fw-semibold mb-2"><i class="bi bi-person-plus"></i> Cliente nuevo <span class="text-secondary fw-normal">· se registra al guardar el turno</span></div>
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-7">
+                                        <label for="cliente_nombre" class="form-label small mb-1">Nombre</label>
+                                        <input type="text" id="cliente_nombre" name="cliente_nombre" class="form-control" maxlength="100"
+                                               value="{{ old('cliente_nombre') }}" disabled>
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                        <label for="cliente_telefono" class="form-label small mb-1">Teléfono <span class="text-secondary">(opcional)</span></label>
+                                        <input type="tel" id="cliente_telefono" name="cliente_telefono" class="form-control" inputmode="numeric"
+                                               placeholder="3001234567" value="{{ old('cliente_telefono') }}" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        @endunless
                     </div>
 
                     {{-- 2. Barbero --}}
