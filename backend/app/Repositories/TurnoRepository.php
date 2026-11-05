@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Servicio;
 use App\Models\Turno;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -28,6 +29,9 @@ class TurnoRepository
                 ->orWhere('telefono', 'like', "%{$texto}%")))
             ->when($filtros['barbero_id'] ?? null, fn ($q, $id) => $q->where('barbero_id', $id))
             ->when($filtros['estado'] ?? null, fn ($q, $estado) => $q->where('estado', $estado))
+            // Pago (R6): "pagado" o "por_cobrar" (atendido sin pago registrado)
+            ->when(($filtros['pago'] ?? null) === 'pagado', fn ($q) => $q->whereNotNull('pagado_en'))
+            ->when(($filtros['pago'] ?? null) === 'por_cobrar', fn ($q) => $q->where('estado', Turno::ATENDIDO)->whereNull('pagado_en'))
             ->when($filtros['desde'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha', '>=', $fecha))
             ->when($filtros['hasta'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha', '<=', $fecha))
             ->orderByDesc('fecha')
@@ -76,17 +80,31 @@ class TurnoRepository
     }
 
     /**
-     * Ingresos entre dos fechas (ambas incluidas): suma de turnos ATENDIDOS.
-     * Un turno pendiente, confirmado, cancelado o de inasistencia todavía no es dinero cobrado.
+     * Ingresos entre dos fechas (ambas incluidas): lo que de verdad se COBRÓ, es decir, los pagos
+     * registrados (R6) en esas fechas. Un turno atendido que todavía no pagó no es dinero cobrado:
+     * aparece aparte, como "por cobrar" (ver porCobrar()).
      */
     public function ingresosEntre(string $desde, string $hasta): float
     {
         // whereDate (y no whereBetween): compara solo el DÍA, así el último día del rango
         // entra completo sin importar cómo guarde la fecha cada motor de base de datos.
-        return (float) Turno::where('estado', Turno::ATENDIDO)
-            ->whereDate('fecha', '>=', $desde)
-            ->whereDate('fecha', '<=', $hasta)
+        return (float) Turno::whereNotNull('pagado_en')
+            ->whereDate('pagado_en', '>=', $desde)
+            ->whereDate('pagado_en', '<=', $hasta)
             ->sum('precio_total');
+    }
+
+    /**
+     * Lo que se debe: turnos ATENDIDOS cuyo pago no se ha registrado (de cualquier fecha: una deuda
+     * no desaparece al cambiar de mes).
+     *
+     * @return array{cantidad: int, total: float}
+     */
+    public function porCobrar(): array
+    {
+        $consulta = Turno::where('estado', Turno::ATENDIDO)->whereNull('pagado_en');
+
+        return ['cantidad' => (int) $consulta->count(), 'total' => (float) $consulta->sum('precio_total')];
     }
 
     /** Turnos cancelados cuya fecha cae entre las dos fechas (ambas incluidas). */
@@ -165,6 +183,22 @@ class TurnoRepository
     public function cambiarEstado(Turno $turno, string $estado): Turno
     {
         $turno->update(['estado' => $estado]);
+
+        return $turno;
+    }
+
+    /** Anota el pago (R6): cuándo y cómo. */
+    public function registrarPago(Turno $turno, string $metodo, Carbon $cuando): Turno
+    {
+        $turno->update(['pagado_en' => $cuando, 'metodo_pago' => $metodo]);
+
+        return $turno;
+    }
+
+    /** Quita el pago registrado (por si se anotó por error): el turno vuelve a "por cobrar". */
+    public function anularPago(Turno $turno): Turno
+    {
+        $turno->update(['pagado_en' => null, 'metodo_pago' => null]);
 
         return $turno;
     }

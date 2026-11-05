@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CambiarEstadoTurnoRequest;
+use App\Http\Requests\RegistrarPagoRequest;
 use App\Http\Requests\StoreTurnoRequest;
 use App\Http\Requests\UpdateTurnoRequest;
 use App\Models\Barbero;
@@ -30,7 +31,7 @@ class TurnoController extends Controller
     /** Listado del administrador: búsqueda, filtros y paginación. */
     public function index(Request $request): View
     {
-        $filtros = $request->only(['q', 'barbero_id', 'estado', 'desde', 'hasta']);
+        $filtros = $request->only(['q', 'barbero_id', 'estado', 'pago', 'desde', 'hasta']);
 
         return view('turnos.index', [
             'turnos' => $this->repositorio->buscar($filtros),
@@ -112,6 +113,26 @@ class TurnoController extends Controller
         ];
 
         return back()->with('exito', $mensajes[$estado]);
+    }
+
+    /** R6: el admin en cualquier turno y el barbero en los suyos (TurnoPolicy@registrarPago). */
+    public function registrarPago(RegistrarPagoRequest $request, Turno $turno): RedirectResponse
+    {
+        $turno = $this->turnos->registrarPago($turno, $request->validated('metodo_pago'));
+
+        return back()->with('exito', sprintf(
+            'Pago registrado: $%s en %s.',
+            number_format($turno->precio_total, 0, ',', '.'),
+            mb_strtolower($turno->metodoPagoLegible()),
+        ));
+    }
+
+    /** Corrige un pago anotado por error. Solo el dueño (TurnoPolicy@anularPago). */
+    public function anularPago(Turno $turno): RedirectResponse
+    {
+        $this->turnos->anularPago($turno);
+
+        return back()->with('exito', 'Pago anulado: el turno vuelve a quedar por cobrar.');
     }
 
     /**

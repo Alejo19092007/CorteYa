@@ -189,6 +189,45 @@ class TurnoService
     }
 
     /**
+     * R6 · Registra que el cliente pagó un turno (a mano: el sistema no cobra en línea).
+     * Solo se puede pagar un turno ATENDIDO, y una sola vez. El monto es el precio_total del turno
+     * (ya calculado en R2): no se digita, así no hay forma de anotar una cifra distinta.
+     */
+    public function registrarPago(Turno $turno, string $metodo): Turno
+    {
+        if (! array_key_exists($metodo, Turno::METODOS_PAGO)) {
+            throw new ReglaNegocioException('Elige un método de pago válido.');
+        }
+
+        return DB::transaction(function () use ($turno, $metodo) {
+            $turno = $this->turnos->bloquear($turno->id);
+
+            if ($turno->estado !== Turno::ATENDIDO) {
+                throw new ReglaNegocioException('Solo se puede registrar el pago de un turno atendido. Primero márcalo como atendido.');
+            }
+            if ($turno->estaPagado()) {
+                throw new ReglaNegocioException('Este turno ya está pagado.');
+            }
+
+            return $this->turnos->registrarPago($turno, $metodo, now());
+        });
+    }
+
+    /** R6 · Corrige un pago anotado por error: el turno vuelve a quedar "por cobrar". */
+    public function anularPago(Turno $turno): Turno
+    {
+        return DB::transaction(function () use ($turno) {
+            $turno = $this->turnos->bloquear($turno->id);
+
+            if (! $turno->estaPagado()) {
+                throw new ReglaNegocioException('Este turno no tiene un pago registrado.');
+            }
+
+            return $this->turnos->anularPago($turno);
+        });
+    }
+
+    /**
      * Horas de inicio libres de un barbero en una fecha para un servicio (o combo) que dura
      * $duracionMin minutos. Lo usan el formulario de nuevo turno y GET /api/barberos/{id}/disponibilidad.
      *
