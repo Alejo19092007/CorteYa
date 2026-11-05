@@ -35,7 +35,7 @@ Escribir `menu` en cualquier momento vuelve al inicio.
 
 | Situación | Qué hace el bot |
 |---|---|
-| **Sin conexión** con la API (o Render dormido) | Responde "No pude comunicarme… intenta de nuevo en un minuto" y **conserva el paso**: el cliente repite el mensaje sin empezar de cero. La espera máxima por llamada es de 60 s porque el plan gratuito tarda en despertar. |
+| **Sin conexión** con la API (o Render dormido) | El plan gratuito de Render apaga la API tras 15 min sin uso y tarda 30-50 s en despertar. Por eso las **lecturas (GET) y el login se reintentan solos** (hasta 3 intentos de 45 s, con pausas de 4 y 8 s), también ante un 502/503/504 del proxy. Las **escrituras (reservar, cancelar) nunca se repiten solas**, para no arriesgar un turno duplicado. Si tras eso sigue sin responder, el bot dice "No pude comunicarme… intenta de nuevo en un minuto" y **conserva el paso**: el cliente repite el mensaje sin empezar de cero. |
 | **401** (token vencido o revocado) | Inicia sesión otra vez y repite la llamada; si sigue fallando avisa de un problema técnico. |
 | **422** (regla de negocio: R1 horario ocupado, R3 menos de 2 h, R4 estado) | Muestra el mensaje de la API al cliente. Si el horario lo ganó otra persona, vuelve a ofrecer los horarios libres. |
 | 404 | Avisa que el turno ya no existe. |

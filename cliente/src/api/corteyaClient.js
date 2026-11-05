@@ -46,15 +46,48 @@ export class ApiAuthError extends Error {
  * @param {string} opciones.email       cuenta de administrador que usa el bot
  * @param {string} opciones.password
  * @param {typeof fetch} [opciones.fetchFn]  se puede reemplazar en las pruebas
- * @param {number} [opciones.timeoutMs]      el plan gratuito de Render tarda ~1 min en despertar
+ * @param {number} [opciones.timeoutMs]      espera máxima por intento; el plan gratuito de Render tarda 30-50 s en despertar
+ * @param {number[]} [opciones.esperasReintentoMs]  pausas entre reintentos cuando el servidor no responde (despertando);
+ *                                           [] desactiva los reintentos
  */
-export function crearClienteApi({ baseUrl, email, password, fetchFn = fetch, timeoutMs = 60_000, deviceName = 'bot' }) {
+export function crearClienteApi({
+  baseUrl, email, password, fetchFn = fetch, timeoutMs = 45_000, deviceName = 'bot', esperasReintentoMs = [4_000, 8_000],
+}) {
   const base = baseUrl.replace(/\/+$/, '');
   let token = null;
   let loginEnCurso = null;
 
+  const dormir = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
+
+  /**
+   * Petición con reintentos para el arranque en frío de Render: si el backend está despertando, el primer intento
+   * falla (sin conexión, tiempo agotado o 502/503/504 del proxy) y los siguientes ya lo encuentran despierto.
+   *
+   * Solo se reintenta lo que es seguro repetir: las lecturas (GET) y el inicio de sesión. Una escritura
+   * (reservar, cancelar) NO se repite sola, para no arriesgar que se ejecute dos veces.
+   */
+  async function http(metodo, ruta, opciones = {}) {
+    const seguroRepetir = metodo === 'GET' || ruta === '/api/login';
+
+    for (let intento = 0; ; intento += 1) {
+      const quedan = seguroRepetir && intento < esperasReintentoMs.length;
+
+      try {
+        const respuesta = await unaPeticion(metodo, ruta, opciones);
+        if (quedan && [502, 503, 504].includes(respuesta.estado)) {
+          await dormir(esperasReintentoMs[intento]);
+          continue;
+        }
+        return respuesta;
+      } catch (error) {
+        if (!(error instanceof ApiNoDisponible) || !quedan) throw error;
+        await dormir(esperasReintentoMs[intento]);
+      }
+    }
+  }
+
   /** Una petición HTTP cruda. Devuelve { estado, datos } o lanza ApiNoDisponible si no hubo respuesta. */
-  async function http(metodo, ruta, { query, cuerpo, conToken = true } = {}) {
+  async function unaPeticion(metodo, ruta, { query, cuerpo, conToken = true } = {}) {
     const url = new URL(base + ruta);
     for (const [clave, valor] of Object.entries(query ?? {})) {
       if (valor === undefined || valor === null) continue;
