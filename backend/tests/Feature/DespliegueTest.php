@@ -291,7 +291,7 @@ class DespliegueTest extends TestCase
         // (Se busca el patrón y no la URL exacta: el host y el puerto dependen del APP_URL de cada equipo)
         $respuesta = $this->get('/login', ['X-Forwarded-Proto' => 'https'])->assertOk();
 
-        $this->assertMatchesRegularExpression('#"https://[^"/]+/css/corteya\.css"#', $respuesta->getContent());
+        $this->assertMatchesRegularExpression('#"https://[^"/]+/css/corteya\.css(?:\?v=\d+)?"#', $respuesta->getContent());
     }
 
     public function test_sin_el_proxy_los_recursos_salen_con_http(): void
@@ -300,7 +300,7 @@ class DespliegueTest extends TestCase
         // Es una prueba aparte porque la aplicación recuerda el esquema de la primera petición.
         $respuesta = $this->get('/login')->assertOk();
 
-        $this->assertMatchesRegularExpression('#"http://[^"/]+/css/corteya\.css"#', $respuesta->getContent());
+        $this->assertMatchesRegularExpression('#"http://[^"/]+/css/corteya\.css(?:\?v=\d+)?"#', $respuesta->getContent());
     }
 
     public function test_la_ruta_de_salud_responde_para_el_chequeo_de_render(): void

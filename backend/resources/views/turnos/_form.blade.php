@@ -149,5 +149,5 @@
 </form>
 
 @push('scripts')
-    <script src="{{ asset('js/turno-form.js') }}"></script>
+    <script src="@recurso('js/turno-form.js')"></script>
 @endpush

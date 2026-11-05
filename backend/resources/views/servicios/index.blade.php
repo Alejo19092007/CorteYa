@@ -102,5 +102,5 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/modal-eliminar.js') }}"></script>
+    <script src="@recurso('js/modal-eliminar.js')"></script>
 @endpush

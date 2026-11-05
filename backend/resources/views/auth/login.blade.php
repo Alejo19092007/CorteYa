@@ -58,5 +58,5 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/login.js') }}"></script>
+    <script src="@recurso('js/login.js')"></script>
 @endpush
