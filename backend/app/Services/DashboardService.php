@@ -9,7 +9,7 @@ use Carbon\Carbon;
 
 /**
  * Calcula lo que muestra el dashboard del administrador: 4 tarjetas con su variación,
- * el gráfico de ingresos por barbero y los turnos de hoy.
+ * el gráfico de ingresos por barbero (solo pagos registrados, R6), lo que está por cobrar y los turnos de hoy.
  *
  * Las comparaciones "contra el mes anterior" usan el MISMO PERIODO: del día 1 al día de hoy
  * de este mes contra del día 1 al mismo día del mes pasado. Comparar medio mes con un mes
@@ -67,6 +67,8 @@ class DashboardService
                     'comparado' => 'vs. mes anterior',
                 ],
             ],
+            // Turnos atendidos cuyo pago todavía no se registra (R6): plata que falta cobrar
+            'porCobrar' => $this->turnos->porCobrar(),
             'grafico' => [
                 'etiquetas' => $ingresosPorBarbero->map(fn ($b) => $b->user->name)->all(),
                 'valores' => $ingresosPorBarbero->map(fn ($b) => $b->ingresos)->all(),

@@ -37,6 +37,15 @@
                         {{ $formato === 'dinero' ? '$'.number_format($tarjeta['valor'], 0, ',', '.') : $tarjeta['valor'] }}
                     </div>
                     @include('panel._variacion', ['v' => $tarjeta['variacion'], 'comparado' => $tarjeta['comparado']])
+
+                    {{-- R6: lo atendido que todavía no se ha cobrado, con acceso directo a esos turnos --}}
+                    @if ($clave === 'ingresosMes' && $porCobrar['cantidad'] > 0)
+                        <a href="{{ route('turnos.index', ['pago' => 'por_cobrar']) }}" class="d-block small mt-2 text-decoration-none text-warning-emphasis">
+                            <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+                            Por cobrar: <strong>${{ number_format($porCobrar['total'], 0, ',', '.') }}</strong>
+                            ({{ $porCobrar['cantidad'] }} {{ $porCobrar['cantidad'] === 1 ? 'turno' : 'turnos' }})
+                        </a>
+                    @endif
                 </div>
             </div>
         @endforeach
@@ -47,7 +56,7 @@
         <div class="col-12 col-lg-7">
             <div class="cy-tarjeta p-3 p-lg-4 h-100">
                 <h2 class="h5 mb-0">Ingresos del mes por barbero</h2>
-                <p class="text-secondary small mb-3">{{ ucfirst($mes) }} · solo turnos atendidos</p>
+                <p class="text-secondary small mb-3">{{ ucfirst($mes) }} · solo pagos registrados</p>
 
                 @if ($hayIngresos)
                     <div class="cy-grafico">
@@ -69,7 +78,7 @@
                 @else
                     <div class="text-center text-secondary py-5">
                         <i class="bi bi-bar-chart fs-1"></i>
-                        <p class="mb-0 mt-2">Aún no hay turnos atendidos este mes.</p>
+                        <p class="mb-0 mt-2">Aún no hay pagos registrados este mes.</p>
                     </div>
                 @endif
             </div>
