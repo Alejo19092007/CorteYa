@@ -45,15 +45,17 @@ class DashboardTest extends TestCase
     // ------------------------------------------------------------------ ayudas
 
     /** Crea un turno de $precio pesos en la fecha dada (cada uno a una hora distinta). */
-    private function turno(string $fecha, string $estado, int $precio = 25000, ?Barbero $barbero = null): Turno
+    /** Los turnos atendidos se crean YA PAGADOS (R6) salvo que se pida lo contrario: así cuentan como ingreso. */
+    private function turno(string $fecha, string $estado, int $precio = 25000, ?Barbero $barbero = null, bool $pagado = true): Turno
     {
         $servicio = Servicio::factory()->create(['duracion_min' => 15, 'precio' => $precio]);
         $inicio = Carbon::parse($fecha.' 06:00')->addMinutes(15 * $this->hora++);
 
-        return Turno::factory()
+        $factory = Turno::factory()
             ->para($barbero ?? $this->barbero, Cliente::factory()->create(), $inicio, collect([$servicio]))
-            ->estado($estado)
-            ->create();
+            ->estado($estado);
+
+        return ($estado === Turno::ATENDIDO && $pagado ? $factory->pagado() : $factory)->create();
     }
 
     private function resumen(): array
@@ -80,7 +82,7 @@ class DashboardTest extends TestCase
 
     // ------------------------------------------------------------------ ingresos
 
-    public function test_los_ingresos_solo_cuentan_turnos_atendidos_del_periodo(): void
+    public function test_los_ingresos_solo_cuentan_pagos_registrados_del_periodo(): void
     {
         $this->turno('2026-11-03', Turno::ATENDIDO, 50000);
         $this->turno('2026-11-10', Turno::ATENDIDO, 30000);
@@ -278,7 +280,7 @@ class DashboardTest extends TestCase
     {
         $this->actingAs($this->admin)->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Aún no hay turnos atendidos este mes')
+            ->assertSee('Aún no hay pagos registrados este mes')
             ->assertDontSee('id="graficoIngresos"', false)
             ->assertDontSee('chart.js@', false);
     }
