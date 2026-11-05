@@ -50,6 +50,24 @@ class RecursosTest extends TestCase
         }
     }
 
+    /**
+     * Regresión del despliegue: `composer dump-autoload` arranca la aplicación (package:discover) mientras se
+     * construye la imagen Docker, ANTES de que exista storage/framework/views. Si el arranque crea el compilador
+     * de Blade, falla con "Please provide a valid cache path" y Render no puede construir. Por eso la directiva
+     * @recurso se registra diferida y el arranque NO debe resolver el compilador.
+     */
+    public function test_arrancar_la_aplicacion_no_crea_el_compilador_de_blade(): void
+    {
+        $app = $this->createApplication();   // aplicación nueva, ya arrancada (providers incluidos)
+
+        $this->assertFalse($app->resolved('blade.compiler'));
+    }
+
+    public function test_la_directiva_recurso_existe_cuando_blade_se_usa(): void
+    {
+        $this->assertArrayHasKey('recurso', app('blade.compiler')->getCustomDirectives());
+    }
+
     /** Guardia: ninguna vista debe volver a enlazar un JS o CSS propio sin versión. */
     public function test_ninguna_vista_enlaza_un_js_o_css_propio_sin_version(): void
     {
