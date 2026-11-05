@@ -15,7 +15,7 @@ Sistema de turnos para una barbería de Bucaramanga. Proyecto de aula de **Desar
 
 ## Estado
 
-En construcción. Entregas cerradas: `docs` (arquitectura C4), `v0.1` (modelo de datos), `v0.2` (panel: login con roles, dashboard y CRUD) y `v0.3` (API con Sanctum, colección de Postman y despliegue público en Render + Aiven: https://corteya.onrender.com). En curso: `v0.4` (bot en `cliente/`: la conversación, el cliente de la API y los adaptadores de Telegram y WhatsApp están hechos y probados; falta conectarlo al canal real y desplegarlo).
+En construcción. Entregas cerradas: `docs` (arquitectura C4), `v0.1` (modelo de datos), `v0.2` (panel: login con roles, dashboard y CRUD), `v0.3` (API con Sanctum, colección de Postman y despliegue público en Render + Aiven: https://corteya.onrender.com) y `v0.4` (bot de turnos en `cliente/`, desplegado en Render y conectado a la API pública: https://corteya-bot.onrender.com; canal Telegram, **@CorteYaBarberiaBot**). Siguiente: `v1.0` (sustentación).
 
 ## Desarrollo local
 
