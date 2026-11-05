@@ -105,6 +105,6 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/turnos-cancelar.js') }}"></script>
-    <script src="{{ asset('js/turnos-pago.js') }}"></script>
+    <script src="@recurso('js/turnos-cancelar.js')"></script>
+    <script src="@recurso('js/turnos-pago.js')"></script>
 @endpush

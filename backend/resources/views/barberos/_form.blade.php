@@ -109,5 +109,5 @@
 </form>
 
 @push('scripts')
-    <script src="{{ asset('js/barbero-form.js') }}"></script>
+    <script src="@recurso('js/barbero-form.js')"></script>
 @endpush

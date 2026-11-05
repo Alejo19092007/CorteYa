@@ -134,6 +134,6 @@
 @push('scripts')
     @if ($hayIngresos)
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-        <script src="{{ asset('js/dashboard.js') }}"></script>
+        <script src="@recurso('js/dashboard.js')"></script>
     @endif
 @endpush
