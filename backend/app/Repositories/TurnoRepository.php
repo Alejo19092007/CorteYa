@@ -22,6 +22,8 @@ class TurnoRepository
      */
     public function buscar(array $filtros, int $porPagina = 10): LengthAwarePaginator
     {
+        $hoy = today()->toDateString();   // zona horaria de la app: America/Bogota
+
         return Turno::query()
             ->with(['barbero.user', 'cliente', 'servicios'])
             ->when($filtros['q'] ?? null, fn ($q, $texto) => $q->whereHas('cliente', fn ($c) => $c
@@ -34,8 +36,16 @@ class TurnoRepository
             ->when(($filtros['pago'] ?? null) === 'por_cobrar', fn ($q) => $q->where('estado', Turno::ATENDIDO)->whereNull('pagado_en'))
             ->when($filtros['desde'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha', '>=', $fecha))
             ->when($filtros['hasta'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha', '<=', $fecha))
-            ->orderByDesc('fecha')
-            ->orderBy('hora_inicio')
+            // Orden de agenda: primero HOY y lo que viene (del día más cercano al más lejano y, dentro de cada día, de la
+            // primera hora a la última); después los días PASADOS (del más reciente al más antiguo, y la hora igual).
+            // Así lo que hay que atender siempre está arriba. Se hace con CASE (y no con dos consultas) para que la
+            // paginación siga siendo una sola lista; DATE(fecha) porque SQLite guarda la fecha con hora y MySQL sin ella.
+            ->orderByRaw('CASE WHEN DATE(fecha) >= ? THEN 0 ELSE 1 END', [$hoy])
+            ->orderByRaw('CASE WHEN DATE(fecha) >= ? THEN fecha END ASC', [$hoy])
+            ->orderByRaw('CASE WHEN DATE(fecha) < ? THEN fecha END DESC', [$hoy])
+            ->orderByRaw('CASE WHEN DATE(fecha) >= ? THEN hora_inicio END ASC', [$hoy])
+            ->orderByRaw('CASE WHEN DATE(fecha) < ? THEN hora_inicio END DESC', [$hoy])
+            ->orderBy('id')   // desempate: dos turnos a la misma hora siempre salen en el mismo orden
             ->paginate($porPagina)
             ->withQueryString();
     }
