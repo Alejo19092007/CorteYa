@@ -117,6 +117,62 @@ class TurnoRepository
         return ['cantidad' => (int) $consulta->count(), 'total' => (float) $consulta->sum('precio_total')];
     }
 
+    /**
+     * Turnos de UN barbero cuya fecha cae en el rango (ambas incluidas), el más reciente primero. Paginado.
+     * Incluye todos los estados (los cancelados y los que no asistieron también son parte de su mes).
+     */
+    public function delBarberoEntre(int $barberoId, string $desde, string $hasta, int $porPagina = 10): LengthAwarePaginator
+    {
+        return Turno::where('barbero_id', $barberoId)
+            ->whereDate('fecha', '>=', $desde)
+            ->whereDate('fecha', '<=', $hasta)
+            ->with(['cliente', 'servicios'])
+            ->orderByDesc('fecha')
+            ->orderByDesc('hora_inicio')
+            ->orderBy('id')
+            ->paginate($porPagina)
+            ->withQueryString();
+    }
+
+    /**
+     * Cuántos turnos de un barbero hay por estado en el rango.
+     *
+     * @return array<string, int> estado => cantidad
+     */
+    public function contarPorEstadoDelBarbero(int $barberoId, string $desde, string $hasta): array
+    {
+        return Turno::where('barbero_id', $barberoId)
+            ->whereDate('fecha', '>=', $desde)
+            ->whereDate('fecha', '<=', $hasta)
+            ->selectRaw('estado, COUNT(*) as total')
+            ->groupBy('estado')
+            ->pluck('total', 'estado')
+            ->map(fn ($total) => (int) $total)
+            ->all();
+    }
+
+    /** Lo que un barbero COBRÓ en el rango: pagos registrados (R6) por fecha de pago, igual que el dashboard. */
+    public function cobradoPorBarberoEntre(int $barberoId, string $desde, string $hasta): float
+    {
+        return (float) Turno::where('barbero_id', $barberoId)
+            ->whereNotNull('pagado_en')
+            ->whereDate('pagado_en', '>=', $desde)
+            ->whereDate('pagado_en', '<=', $hasta)
+            ->sum('precio_total');
+    }
+
+    /**
+     * Lo que le deben a un barbero: sus turnos atendidos sin pago (de cualquier fecha).
+     *
+     * @return array{cantidad: int, total: float}
+     */
+    public function porCobrarDelBarbero(int $barberoId): array
+    {
+        $consulta = Turno::where('barbero_id', $barberoId)->where('estado', Turno::ATENDIDO)->whereNull('pagado_en');
+
+        return ['cantidad' => (int) $consulta->count(), 'total' => (float) $consulta->sum('precio_total')];
+    }
+
     /** Turnos cancelados cuya fecha cae entre las dos fechas (ambas incluidas). */
     public function cancelacionesEntre(string $desde, string $hasta): int
     {
