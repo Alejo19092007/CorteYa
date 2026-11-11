@@ -11,6 +11,7 @@
         ]
         : [
             ['agenda', 'bi-calendar3', 'Mi agenda'],
+            ['mi-mes', 'bi-bar-chart-line', 'Mi mes'],
         ];
 @endphp
 
