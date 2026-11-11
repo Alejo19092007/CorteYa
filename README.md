@@ -3,7 +3,7 @@
 Sistema de turnos para una barbería de Bucaramanga. Proyecto de aula de **Desarrollo y Arquitectura Backend** (UNAB, segundo corte).
 
 **Integrante:** Edwar Alejandro Jiménez Ríos.
-
+**Integrante:** Julian Eduardo Godoy Arias.
 ## Piezas
 
 | Carpeta | Descripción |
@@ -142,6 +142,3 @@ En [postman/](postman/): `CorteYa.postman_collection.json` y dos entornos (`prod
 
 Por consola: `npx newman run postman/CorteYa.postman_collection.json -e postman/CorteYa.local.postman_environment.json --env-var password=<clave>`.
 
-## Créditos
-
-La imagen de fondo del login es provisional (referencia de diseño); se reemplazará por una foto real de la barbería o una imagen con licencia libre.
