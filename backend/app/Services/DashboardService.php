@@ -78,6 +78,35 @@ class DashboardService
     }
 
     /**
+     * "Mi mes" del barbero: sus turnos del mes, cuánto cobró y cuánto le falta por cobrar.
+     * Solo mira a UN barbero (el del usuario que inició sesión); nunca datos de los demás.
+     *
+     * @param  string|null  $mes  'AAAA-MM'; null = el mes actual
+     */
+    public function resumenDelBarbero(int $barberoId, ?string $mes = null, int $porPagina = 10): array
+    {
+        $inicio = ($mes ? Carbon::createFromFormat('Y-m-d', $mes.'-01') : now())->copy()->startOfMonth();
+        $fin = $inicio->copy()->endOfMonth();
+        [$desde, $hasta] = [$inicio->toDateString(), $fin->toDateString()];
+
+        $porEstado = $this->turnos->contarPorEstadoDelBarbero($barberoId, $desde, $hasta);
+
+        return [
+            'inicio' => $inicio,
+            'mes' => $inicio->copy()->locale('es')->isoFormat('MMMM [de] YYYY'),
+            'esMesActual' => $inicio->isSameMonth(now()),
+            'anterior' => $inicio->copy()->subMonthNoOverflow()->format('Y-m'),
+            'siguiente' => $inicio->copy()->addMonthNoOverflow()->format('Y-m'),
+            'porEstado' => $porEstado,
+            'total' => array_sum($porEstado),
+            'atendidos' => $porEstado['atendido'] ?? 0,
+            'cobrado' => $this->turnos->cobradoPorBarberoEntre($barberoId, $desde, $hasta),
+            'porCobrar' => $this->turnos->porCobrarDelBarbero($barberoId),
+            'turnos' => $this->turnos->delBarberoEntre($barberoId, $desde, $hasta, $porPagina),
+        ];
+    }
+
+    /**
      * Compara el valor actual contra el anterior.
      *
      * @param  bool  $porcentual  true: diferencia en % (dinero, cancelaciones); false: diferencia absoluta (conteos pequeños)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CambiarEstadoTurnoRequest;
+use App\Http\Requests\MiMesRequest;
 use App\Http\Requests\RegistrarPagoRequest;
 use App\Http\Requests\StoreTurnoRequest;
 use App\Http\Requests\UpdateTurnoRequest;
@@ -10,6 +11,7 @@ use App\Models\Barbero;
 use App\Models\Servicio;
 use App\Models\Turno;
 use App\Repositories\TurnoRepository;
+use App\Services\DashboardService;
 use App\Services\TurnoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +28,7 @@ class TurnoController extends Controller
     public function __construct(
         private readonly TurnoService $turnos,
         private readonly TurnoRepository $repositorio,
+        private readonly DashboardService $reportes,
     ) {}
 
     /** Listado del administrador: búsqueda, filtros y paginación. */
@@ -96,6 +99,17 @@ class TurnoController extends Controller
         return view('turnos.agenda', [
             'barbero' => $barbero,
             'turnos' => $barbero ? $this->repositorio->agendaDelBarbero($barbero->id, $hoy) : collect(),
+        ]);
+    }
+
+    /** "Mi mes": los turnos del mes del barbero y cuánto ha cobrado. Solo ve los suyos. */
+    public function miMes(MiMesRequest $request): View
+    {
+        $barbero = $request->user()->barbero;
+
+        return view('turnos.mi-mes', [
+            'barbero' => $barbero,
+            'resumen' => $barbero ? $this->reportes->resumenDelBarbero($barbero->id, $request->validated('mes')) : null,
         ]);
     }
 

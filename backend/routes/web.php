@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
     // Solo los barberos
     Route::middleware('role:barbero')->group(function () {
         Route::get('/agenda', [TurnoController::class, 'agenda'])->name('agenda');
+        Route::get('/mi-mes', [TurnoController::class, 'miMes'])->name('mi-mes');
     });
 
     // Admin y barbero: confirmar / atendido / no asistió. La política limita al barbero a sus turnos.
