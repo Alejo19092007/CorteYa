@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BarberoController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\ServicioController;
 use App\Http\Controllers\TurnoController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +42,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:barbero')->group(function () {
         Route::get('/agenda', [TurnoController::class, 'agenda'])->name('agenda');
         Route::get('/mi-mes', [TurnoController::class, 'miMes'])->name('mi-mes');
+
+        // Perfil del barbero: ve sus datos y cambia SOLO su horario. Siempre es el del usuario que inició sesión.
+        Route::get('/mi-perfil', [PerfilController::class, 'show'])->name('mi-perfil');
+        Route::put('/mi-perfil/horario', [PerfilController::class, 'actualizarHorario'])->name('mi-perfil.horario');
     });
 
     // Admin y barbero: confirmar / atendido / no asistió. La política limita al barbero a sus turnos.

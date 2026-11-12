@@ -52,6 +52,22 @@ class BarberoService
         });
     }
 
+    /**
+     * El propio barbero cambia SOLO su horario (no su cuenta ni si está activo: eso es del dueño).
+     * Aplica la misma regla que el dueño: el nuevo horario no puede dejar fuera turnos ya reservados.
+     *
+     * @param  array<int, array{hora_inicio: string, hora_fin: string}>  $horarios  dia_semana => jornada
+     */
+    public function actualizarHorarios(Barbero $barbero, array $horarios): Barbero
+    {
+        return DB::transaction(function () use ($barbero, $horarios) {
+            $this->validarQueNoDejaTurnosFuera($barbero, $horarios);
+            $this->barberos->reemplazarHorarios($barbero, $horarios);
+
+            return $barbero->fresh(['user', 'horarios']);
+        });
+    }
+
     /** Activa o desactiva al barbero. Uno inactivo no recibe turnos nuevos, pero conserva su historial. */
     public function alternarActivo(Barbero $barbero): Barbero
     {
