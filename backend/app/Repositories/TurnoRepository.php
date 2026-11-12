@@ -72,6 +72,22 @@ class TurnoRepository
             ->get();
     }
 
+    /**
+     * Turnos de un barbero de los próximos $dias días (desde mañana) que todavía se pueden gestionar:
+     * pendientes o confirmados, por fecha y hora. Sirve para confirmarlos o cancelarlos con tiempo.
+     */
+    public function proximosDelBarbero(int $barberoId, string $hoy, int $dias = 14): Collection
+    {
+        return Turno::where('barbero_id', $barberoId)
+            ->whereDate('fecha', '>', $hoy)
+            ->whereDate('fecha', '<=', Carbon::parse($hoy)->addDays($dias)->toDateString())
+            ->whereIn('estado', [Turno::PENDIENTE, Turno::CONFIRMADO])
+            ->with(['cliente', 'servicios'])
+            ->orderBy('fecha')
+            ->orderBy('hora_inicio')
+            ->get();
+    }
+
     /** Todos los turnos de una fecha, por hora (agenda general del día, con los cancelados incluidos). */
     public function delDia(string $fecha): Collection
     {

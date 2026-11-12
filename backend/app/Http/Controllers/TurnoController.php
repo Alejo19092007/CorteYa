@@ -99,6 +99,7 @@ class TurnoController extends Controller
         return view('turnos.agenda', [
             'barbero' => $barbero,
             'turnos' => $barbero ? $this->repositorio->agendaDelBarbero($barbero->id, $hoy) : collect(),
+            'proximos' => $barbero ? $this->repositorio->proximosDelBarbero($barbero->id, $hoy) : collect(),
         ]);
     }
 
