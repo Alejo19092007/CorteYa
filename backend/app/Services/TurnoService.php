@@ -27,6 +27,8 @@ class TurnoService
 
     public const CANCELA_CLIENTE = 'cliente';
 
+    public const CANCELA_BARBERO = 'barbero';
+
     /** R3: el cliente puede cancelar hasta 2 horas antes del inicio. */
     private const HORAS_MINIMAS_PARA_CANCELAR = 2;
 
@@ -205,10 +207,10 @@ class TurnoService
     /**
      * Cancela un turno (cambia el estado a "cancelado"; nunca se borra).
      *
-     * R3 (hasta 2 horas antes) aplica SOLO al cliente (API/bot). El administrador puede
-     * cancelar en cualquier momento, por ejemplo si un barbero se enferma.
+     * R3 (hasta 2 horas antes) aplica SOLO al cliente (API/bot). El administrador y el barbero
+     * (sus propios turnos) pueden cancelar en cualquier momento, por ejemplo si el barbero se enferma.
      *
-     * @param  string  $quien  CANCELA_ADMIN o CANCELA_CLIENTE
+     * @param  string  $quien  CANCELA_ADMIN, CANCELA_BARBERO o CANCELA_CLIENTE
      */
     public function cancelar(Turno $turno, string $quien): Turno
     {

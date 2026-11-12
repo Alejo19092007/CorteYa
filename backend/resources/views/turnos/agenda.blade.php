@@ -126,9 +126,23 @@
                                 @endunless
                             </div>
                         @endif
+                        {{-- Cancelar (por ejemplo, si no puedes atender): pendiente o confirmado. Pide confirmación en el modal. --}}
+                        @if ($turno->esEditable())
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCancelar"
+                                    data-accion="{{ route('turnos.cancelar', $turno) }}"
+                                    data-resumen="{{ $turno->cliente->nombre }} · {{ $turno->fecha->format('d/m/Y') }} · {{ $turno->horaInicioLegible() }}">
+                                <i class="bi bi-x-circle"></i> Cancelar turno
+                            </button>
+                        @endif
                     </div>
                 </div>
             @endforeach
         </div>
+
+        @include('turnos._modal_cancelar')
     @endif
 @endsection
+
+@push('scripts')
+    <script src="@recurso('js/turnos-cancelar.js')"></script>
+@endpush

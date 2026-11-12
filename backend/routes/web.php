@@ -53,6 +53,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('can:cambiarEstado,turno')
         ->name('turnos.estado');
 
+    // Cancelar un turno desde "Mi agenda": el barbero solo los suyos (la política lo limita). Sin el límite de R3.
+    Route::delete('/turnos/{turno}/cancelacion', [TurnoController::class, 'cancelar'])
+        ->middleware('can:cancelar,turno')
+        ->name('turnos.cancelar');
+
     // R6 · Pago del turno: lo registran el admin (cualquiera) y el barbero (los suyos); solo el admin lo anula.
     Route::patch('/turnos/{turno}/pago', [TurnoController::class, 'registrarPago'])
         ->middleware('can:registrarPago,turno')

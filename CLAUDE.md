@@ -59,7 +59,7 @@ Los controladores NO llevan lógica de negocio. Si una regla falla, el Service l
 
 ### Decisiones tomadas
 
-1. **R3 solo para el cliente (API/bot).** El admin puede cancelar en cualquier momento. `TurnoService::cancelar` recibe quién cancela.
+1. **R3 solo para el cliente (API/bot).** El admin puede cancelar en cualquier momento, y el barbero también (solo sus turnos, desde "Mi agenda", por si se enferma). `TurnoService::cancelar` recibe quién cancela (`CANCELA_ADMIN`, `CANCELA_BARBERO` o `CANCELA_CLIENTE`). El cliente no recibe aviso (los recordatorios están fuera de alcance).
 2. **Estado inicial:** los turnos creados en el panel nacen `confirmado`; los creados por el bot (Telegram) nacen `pendiente`.
 3. **Confirmar pendientes:** el admin (cualquier turno, desde el listado) y el barbero (solo los suyos, botón "Confirmar" en "Mi agenda").
 4. **"Atendido" y "No asistió"** solo se permiten cuando ya pasó la `hora_inicio` del turno; si no, 422 "Aún no ha llegado la hora del turno".
@@ -99,7 +99,7 @@ Decisiones de la API (v0.3), además de las del README: solo las cuentas `admin`
 ## Funciones por usuario
 
 - **Dueño (admin):** barberos, servicios y precios, horarios, agenda de todos, clientes y fidelidad, dashboard de ingresos (gráfico) y registrar/anular pagos.
-- **Barbero:** su agenda del día, confirmar / marcar atendido / no asistió y cobrar (registrar el pago) (solo sus turnos), sus cortes del mes (opcional). No ve a otros barberos ni reportes.
+- **Barbero:** su agenda del día, confirmar / marcar atendido / no asistió / cancelar y cobrar (registrar el pago) (solo sus turnos), "Mi mes" (sus turnos del mes y lo cobrado) y "Mi perfil" (ve sus datos y cambia solo su horario). No ve a otros barberos ni reportes.
 - **Cliente (Telegram):** ver servicios, reservar, consultar y cancelar su turno, cortes que faltan para el gratis (R5, opcional).
 - Fuera de alcance: ver "Alcance y prioridades".
 
