@@ -113,6 +113,17 @@ class TurnoController extends Controller
         ]);
     }
 
+    /**
+     * El barbero cancela uno de SUS turnos (la política TurnoPolicy@cancelar lo limita a los suyos).
+     * No aplica el límite de 2 horas (R3): ese es solo para el cliente. R4 sí: solo pendiente o confirmado.
+     */
+    public function cancelar(Turno $turno): RedirectResponse
+    {
+        $this->turnos->cancelar($turno, TurnoService::CANCELA_BARBERO);
+
+        return back()->with('exito', 'Turno cancelado.');
+    }
+
     /** Confirmar, marcar atendido o no asistió. La política TurnoPolicy@cambiarEstado limita al barbero a sus turnos. */
     public function cambiarEstado(CambiarEstadoTurnoRequest $request, Turno $turno): RedirectResponse
     {

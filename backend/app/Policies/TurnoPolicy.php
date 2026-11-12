@@ -23,6 +23,12 @@ class TurnoPolicy
             && $usuario->barbero->id === $turno->barbero_id;
     }
 
+    /** Cancelar desde el panel: el admin cualquiera; el barbero solo los suyos (por ejemplo si se enferma). */
+    public function cancelar(User $usuario, Turno $turno): bool
+    {
+        return $this->cambiarEstado($usuario, $turno);
+    }
+
     /** Registrar el pago (R6): igual que cambiar el estado, el admin en cualquiera y el barbero en los suyos. */
     public function registrarPago(User $usuario, Turno $turno): bool
     {
