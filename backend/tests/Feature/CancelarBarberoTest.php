@@ -119,6 +119,49 @@ class CancelarBarberoTest extends TestCase
             ->assertSee('turnos-cancelar.js', false);
     }
 
+    /** Turno en otro día (días desde hoy; positivo = futuro) a las 10:00. */
+    private function turnoEnDias(Barbero $barbero, string $estado, int $dias): Turno
+    {
+        $inicio = now()->startOfDay()->addDays($dias)->setTime(10, 0);
+
+        return Turno::factory()->para($barbero, $this->cliente, $inicio, collect([$this->corte]))->estado($estado)->create();
+    }
+
+    public function test_mi_agenda_lista_los_proximos_dias_pendientes_y_confirmados_con_su_boton(): void
+    {
+        $manana = $this->turnoEnDias($this->camilo, Turno::CONFIRMADO, 1);
+        $enUnaSemana = $this->turnoEnDias($this->camilo, Turno::PENDIENTE, 7);
+        $lejano = $this->turnoEnDias($this->camilo, Turno::CONFIRMADO, 20);          // fuera de los 14 días
+        $cancelado = $this->turnoEnDias($this->camilo, Turno::CANCELADO, 2);          // ya no se gestiona
+        $ajeno = $this->turnoEnDias($this->andres, Turno::CONFIRMADO, 1);             // de otro barbero
+
+        $this->actingAs($this->camilo->user)
+            ->get(route('agenda'))
+            ->assertOk()
+            ->assertSee('Próximos días')
+            ->assertSee(route('turnos.cancelar', $manana))
+            ->assertSee(route('turnos.cancelar', $enUnaSemana))
+            ->assertDontSee(route('turnos.cancelar', $lejano))
+            ->assertDontSee(route('turnos.cancelar', $cancelado))
+            ->assertDontSee(route('turnos.cancelar', $ajeno))
+            ->assertSee('turnos-cancelar.js', false)
+            ->assertSee('id="modalCancelar"', false);
+    }
+
+    public function test_los_proximos_dias_salen_aunque_hoy_no_haya_turnos_y_se_cancelan(): void
+    {
+        $manana = $this->turnoEnDias($this->camilo, Turno::PENDIENTE, 1);
+
+        $this->actingAs($this->camilo->user)->get(route('agenda'))
+            ->assertSee('No tienes turnos para hoy')
+            ->assertSee(route('turnos.cancelar', $manana));
+
+        $this->actingAs($this->camilo->user)->delete(route('turnos.cancelar', $manana))->assertSessionHas('exito');
+        $this->assertSame(Turno::CANCELADO, $manana->fresh()->estado);
+
+        $this->actingAs($this->camilo->user)->get(route('agenda'))->assertDontSee('Próximos días');
+    }
+
     public function test_el_admin_y_el_visitante(): void
     {
         $turno = $this->turno($this->camilo, Turno::CONFIRMADO);

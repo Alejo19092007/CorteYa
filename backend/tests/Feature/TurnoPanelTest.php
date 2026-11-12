@@ -720,17 +720,18 @@ class TurnoPanelTest extends TestCase
 
     // ------------------------------------------------------------------ agenda
 
-    public function test_la_agenda_muestra_solo_los_turnos_de_hoy_del_barbero(): void
+    public function test_la_agenda_muestra_los_turnos_de_hoy_y_aparte_los_proximos_solo_del_barbero(): void
     {
         $otro = $this->nuevoBarbero();
         $this->turno('2026-11-02 11:00', cliente: Cliente::factory()->create(['nombre' => 'Mi Cliente de Hoy']));
         $this->turno('2026-11-03 11:00', cliente: Cliente::factory()->create(['nombre' => 'Cliente de Mañana']));
         $this->turno('2026-11-02 12:00', cliente: Cliente::factory()->create(['nombre' => 'Cliente de Otro']), barbero: $otro);
+        $this->turno('2026-11-03 12:00', cliente: Cliente::factory()->create(['nombre' => 'Cliente de Otro Mañana']), barbero: $otro);
 
         $this->actingAs($this->barbero->user)->get(route('agenda'))
             ->assertOk()
-            ->assertSee('Mi Cliente de Hoy')
-            ->assertDontSee('Cliente de Mañana')
+            // Hoy primero y, después, la sección de próximos días con el de mañana
+            ->assertSeeInOrder(['Mi Cliente de Hoy', 'Próximos días', 'Cliente de Mañana'])
             ->assertDontSee('Cliente de Otro');
     }
 

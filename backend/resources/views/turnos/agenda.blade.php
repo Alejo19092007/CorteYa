@@ -138,7 +138,48 @@
                 </div>
             @endforeach
         </div>
+    @endif
 
+    {{-- Próximos días: para confirmar o cancelar con tiempo (por ejemplo, si no vas a poder trabajar mañana) --}}
+    @if ($proximos->isNotEmpty())
+        <h2 class="h4 mt-4 mb-1"><i class="bi bi-calendar-week"></i> Próximos días</h2>
+        <p class="text-secondary small">Tus turnos pendientes y confirmados de los próximos 14 días.</p>
+
+        @foreach ($proximos->groupBy(fn ($t) => $t->fecha->toDateString()) as $fecha => $delDia)
+            <h3 class="h6 text-capitalize mt-3 mb-2">{{ \Carbon\Carbon::parse($fecha)->locale('es')->isoFormat('dddd D [de] MMMM') }}</h3>
+
+            <div class="row g-2">
+                @foreach ($delDia as $turno)
+                    <div class="col-12 col-xl-6">
+                        <div class="cy-tarjeta p-3 h-100 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div>
+                                <div class="fw-bold">{{ $turno->horaInicioLegible() }} · {{ $turno->cliente->nombre }}</div>
+                                <div class="text-secondary small">{{ $turno->serviciosTexto() }} · <i class="bi bi-clock"></i> {{ $turno->duracionMin() }} min</div>
+                                <div class="mt-1"><x-estado-turno :estado="$turno->estado" /></div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                @if ($turno->estado === Turno::PENDIENTE)
+                                    <form method="POST" action="{{ route('turnos.estado', $turno) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="estado" value="confirmado">
+                                        <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Confirmar</button>
+                                    </form>
+                                @endif
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCancelar"
+                                        data-accion="{{ route('turnos.cancelar', $turno) }}"
+                                        data-resumen="{{ $turno->cliente->nombre }} · {{ $turno->fecha->format('d/m/Y') }} · {{ $turno->horaInicioLegible() }}">
+                                    <i class="bi bi-x-circle"></i> Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endforeach
+    @endif
+
+    @if ($turnos->isNotEmpty() || $proximos->isNotEmpty())
         @include('turnos._modal_cancelar')
     @endif
 @endsection
