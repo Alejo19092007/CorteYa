@@ -106,6 +106,24 @@ class StoreBarberoRequest extends FormRequest
     }
 
     /**
+     * Horarios como dia_semana => jornada, solo de los días que trabaja.
+     *
+     * @return array<int, array{hora_inicio: string, hora_fin: string}>
+     */
+    protected function horariosValidados(): array
+    {
+        $horarios = [];
+
+        foreach ($this->validated()['horarios'] as $dia => $fila) {
+            if (array_key_exists((int) $dia, self::DIAS) && ! empty($fila['trabaja'])) {
+                $horarios[(int) $dia] = ['hora_inicio' => $fila['inicio'], 'hora_fin' => $fila['fin']];
+            }
+        }
+
+        return $horarios;
+    }
+
+    /**
      * Datos listos para BarberoService. Los horarios quedan como dia_semana => jornada,
      * solo para los días que trabaja.
      *
@@ -114,13 +132,7 @@ class StoreBarberoRequest extends FormRequest
     public function datos(): array
     {
         $datos = $this->validated();
-        $horarios = [];
-
-        foreach ($datos['horarios'] as $dia => $fila) {
-            if (array_key_exists((int) $dia, self::DIAS) && ! empty($fila['trabaja'])) {
-                $horarios[(int) $dia] = ['hora_inicio' => $fila['inicio'], 'hora_fin' => $fila['fin']];
-            }
-        }
+        $horarios = $this->horariosValidados();
 
         return [
             'name' => $datos['name'],

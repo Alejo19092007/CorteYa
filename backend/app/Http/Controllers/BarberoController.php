@@ -47,13 +47,7 @@ class BarberoController extends Controller
     {
         $barbero->load(['user', 'horarios']);
 
-        $jornadas = $barbero->horarios->mapWithKeys(fn ($h) => [$h->dia_semana => [
-            'trabaja' => true,
-            'inicio' => substr($h->hora_inicio, 0, 5),
-            'fin' => substr($h->hora_fin, 0, 5),
-        ]])->all();
-
-        return view('barberos.edit', ['barbero' => $barbero, 'jornadas' => $jornadas]);
+        return view('barberos.edit', ['barbero' => $barbero, 'jornadas' => $barbero->jornadas()]);
     }
 
     public function update(UpdateBarberoRequest $request, Barbero $barbero): RedirectResponse
